@@ -50,3 +50,4 @@ set(SAI2-PRIMITIVES_EXAMPLES_COMMON_LIBRARIES
 
 ADD_SUBDIRECTORY(01-puma_control_pos_and_ori_tasks)
 ADD_SUBDIRECTORY(02-puma_control_posori_tasks)
+ADD_SUBDIRECTORY(03-kuka_arm_motion_primitive)
