@@ -45,6 +45,8 @@ SurfaceSurfaceAlignment::SurfaceSurfaceAlignment(Sai2Model::Sai2Model* robot,
 	_desired_velocity = _posori_task->_desired_velocity;
 	_desired_angular_velocity = _posori_task->_desired_angular_velocity;
 
+	_desired_normal_force = 10.0;
+
 	// TODO make a nullspace criteria to avoid singularities and one to avoid obstacles
 	_joint_task->_desired_position = _robot->_q;
 	_joint_task->_desired_velocity.setZero(_robot->_dof);
@@ -102,6 +104,11 @@ void SurfaceSurfaceAlignment::updateSensedForceAndMoment(const Eigen::Vector3d s
 							    						 const Eigen::Vector3d sensed_moment_sensor_frame)
 {
 	_posori_task->updateSensedForceAndMoment(sensed_force_sensor_frame, sensed_moment_sensor_frame);
+}
+
+void SurfaceSurfaceAlignment::setDesiredNormalForce(const double force_value)
+{
+	_desired_normal_force = force_value;
 }
 
 void SurfaceSurfaceAlignment::enableGravComp()

@@ -224,8 +224,6 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 	Eigen::VectorXd surf_alignment_primitive_torques;
 	surf_alignment_primitive->enableGravComp();
 
-	surf_alignment_primitive->_desired_normal_force = 5.0;
-
 	// create a loop timer
 	double control_freq = 1000;
 	LoopTimer timer;

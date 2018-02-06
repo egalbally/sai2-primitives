@@ -109,6 +109,14 @@ public:
 	 */
 	void setForceAxis(const Eigen::Vector3d force_axis);
 
+	/**
+	 * @brief Updates the force controlled axis for a hybrid position force controller with 1 DoF force and 2 DoF motion
+	 * @details Use this function in situations when the force axis needs to be updated (as an estimated normal for example) over time.
+	 * This does not reset the integral terms.
+	 * In setting up the controller for the first time, prefer setForceAxis.
+	 * 
+	 * @param force_axis         The axis in control frame coordinates along which the controller behaves as a force controller.
+	 */
 	void updateForceAxis(const Eigen::Vector3d force_axis);
 
 	/**
@@ -121,6 +129,14 @@ public:
 	 */
 	void setLinearMotionAxis(const Eigen::Vector3d motion_axis);
 
+	/**
+	 * @brief Sets the motion controlled axis for a hybrid position force controller with 2 DoF force and 1 DoF motion
+	 * @details Use this function in situations when the motion axis needs to be updated over time.
+	 * This does not reset the integral terms.
+	 * In setting up the controller for the first time, prefer setMotionAxis.
+	 * 
+	 * @param force_axis         The axis in control frame coordinates along which the controller behaves as a motion controller.
+	 */
 	void updateLinearMotionAxis(const Eigen::Vector3d motion_axis);
 
 	/**
@@ -148,6 +164,14 @@ public:
 	 */
 	void setMomentAxis(const Eigen::Vector3d moment_axis);
 
+	/**
+	 * @brief Sets the moment controlled axis for a hybrid orientation moment controller with 1 DoF moment and 2 DoF orientation
+	 * @details Use this function in situations when the moment axis needs to be updated over time.
+	 * This does not reset the integral terms.
+	 * In setting up the controller for the first time, prefer setMomentAxis.
+	 * 
+	 * @param moment_axis         The axis in control frame coordinates along which the controller behaves as a moment controller.
+	 */
 	void updateMomentAxis(const Eigen::Vector3d moment_axis);
 
 	/**
@@ -160,6 +184,14 @@ public:
 	 */
 	void setAngularMotionAxis(const Eigen::Vector3d motion_axis);
 
+	/**
+	 * @brief Sets the angular movement controlled axis for a hybrid orientation moment controller with 2 DoF moment and 1 DoF motion
+	 * @details Use this function in situations when the angular motion axis needs to be updated over time.
+	 * This does not reset the integral terms.
+	 * In setting up the controller for the first time, prefer setAngularMotionAxis.
+	 * 
+	 * @param force_axis         The axis in control frame coordinates along which the controller behaves as a rotational motion controller.
+	 */
 	void updateAngularMotionAxis(const Eigen::Vector3d motion_axis);
 
 	/**
@@ -177,16 +209,41 @@ public:
 	 */
 	void setFullAngularMotionControl();
 
+	/**
+	 * @brief Changes the behavior to closed loop force control for the force controlled directions in the linear part of the controller
+	 */
 	void setClosedLoopForceControl();
+
+	/**
+	 * @brief Changes the behavior to open loop force control for the force controlled directions in the linear part of the controller
+	 * (default behavior)
+	 */
 	void setOpenLoopForceControl();
+
+	/**
+	 * @brief Changes the behavior to closed loop moment control for the moment controlled directions in the angular part of the controller
+	 */
 	void setClosedLoopMomentControl();
+
+	/**
+	 * @brief Changes the behavior to open loop moment control for the moment controlled directions in the angular part of the controller
+	 */
 	void setOpenLoopMomentControl();
 	// ------- helper methods -------
 
+	/**
+	 * @brief Resets all the integrated errors used in I terms
+	 */
 	void resetIntegrators();
 
+	/**
+	 * @brief Resets the integrated errors used in I terms for linear part of task (position_integrated_error and force_integrated_error)
+	 */
 	void resetIntegratorsLinear();
 
+	/**
+	 * @brief Resets the integrated errors used in I terms for angular part of task (orientation_integrated_error and moment_integrated_error)
+	 */
 	void resetIntegratorsAngular();
 
 	//------------------------------------------------
