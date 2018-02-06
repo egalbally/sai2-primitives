@@ -77,6 +77,14 @@ RedundantArmMotion::RedundantArmMotion(Sai2Model::Sai2Model* robot,
 	_joint_task->_desired_velocity.setZero(_robot->_dof);	
 }
 
+RedundantArmMotion::~RedundantArmMotion()
+{
+	delete _posori_task;
+	delete _joint_task;
+	_posori_task = NULL;
+	_joint_task = NULL;
+}
+
 void RedundantArmMotion::updatePrimitiveModel()
 {
 	_posori_task->updateTaskModel(Eigen::MatrixXd::Identity(_robot->_dof,_robot->_dof));

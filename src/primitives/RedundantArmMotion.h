@@ -28,6 +28,8 @@ public:
 	                   const Eigen::Vector3d pos_in_link,
 	                   const Eigen::Matrix3d rot_in_link = Eigen::Matrix3d::Identity());
 
+	~RedundantArmMotion();
+
 	void updatePrimitiveModel();
 
 	void computeTorques(Eigen::VectorXd& torques);
