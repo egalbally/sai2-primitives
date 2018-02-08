@@ -122,7 +122,7 @@ void OrientationTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 	// get orientation error for P term
 	_robot->rotation(_current_orientation, _link_name);
 	_current_orientation = _current_orientation * _control_frame.linear(); // orientation of compliant frame in robot frame
-	_robot->orientationError(_orientation_error, _desired_orientation, _current_orientation);
+	Sai2Model::orientationError(_orientation_error, _desired_orientation, _current_orientation);
 
 	// update integrated error for I term
 	_integrated_orientation_error += _orientation_error * _t_diff.count();
