@@ -41,8 +41,8 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* plate, ForceS
 
 // control link and position in link
 const string link_name = "link6";
-const Eigen::Vector3d pos_in_link = Eigen::Vector3d(0.0,0.0,0.12);
-const Eigen::Vector3d sensor_pos_in_link = Eigen::Vector3d(0.0,0.0,0.12);
+const Eigen::Vector3d pos_in_link = Eigen::Vector3d(0.0,0.0,0.20);
+const Eigen::Vector3d sensor_pos_in_link = Eigen::Vector3d(0.0,0.0,0.05);
 Eigen::Vector3d sensed_force;
 Eigen::Vector3d sensed_moment;
 

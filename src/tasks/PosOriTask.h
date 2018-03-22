@@ -50,7 +50,7 @@ public:
 	 */
 	PosOriTask(Sai2Model::Sai2Model* robot, 
 		            const std::string link_name, 
-		            const Eigen::Vector3d pos_in_link = Eigen::Vector3d::Zero(), 
+		            const Eigen::Vector3d pos_in_link, 
 		            const Eigen::Matrix3d rot_in_link = Eigen::Matrix3d::Identity());
 
 

@@ -259,9 +259,14 @@ void PosOriTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 
 
 	// compute task force
-	_task_force.head(3) = position_related_force + force_related_force;
-	_task_force.tail(3) = orientation_related_force + moment_related_force;
-	_task_force = _Lambda*_task_force;
+	Eigen::VectorXd force_moment_contribution(6), position_orientation_contribution(6);
+	force_moment_contribution.head(3) = force_related_force;
+	force_moment_contribution.tail(3) = moment_related_force;
+
+	position_orientation_contribution.head(3) = position_related_force;
+	position_orientation_contribution.tail(3) = orientation_related_force;
+
+	_task_force = _Lambda * position_orientation_contribution + force_moment_contribution;
 
 	// compute task torques
 	task_joint_torques = _projected_jacobian.transpose()*_task_force;

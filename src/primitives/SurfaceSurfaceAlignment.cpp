@@ -28,14 +28,22 @@ SurfaceSurfaceAlignment::SurfaceSurfaceAlignment(Sai2Model::Sai2Model* robot,
 
 	_posori_task->setForceSensorFrame(link_name, sensor_frame);
 
-	_posori_task->setForceAxis(Eigen::Vector3d(0.0,0.0,1.0));
-	_posori_task->setAngularMotionAxis(Eigen::Vector3d(0.0,0.0,1.0));
+
+	Eigen::Vector3d localz;
+	Eigen::Matrix3d R_base_link;
+	_robot->rotation(R_base_link, _link_name);
+	localz = R_base_link.col(2);
+	_posori_task->setForceAxis(localz);
+	_posori_task->setAngularMotionAxis(localz);
 
 	_posori_task->setClosedLoopMomentControl();
 
 	_posori_task->_kp_moment = 1.0;
 	_posori_task->_ki_moment = 0.5;
 	_posori_task->_kv_moment = 10.0;
+
+	_posori_task->_kp_ori = 50.0;
+	_posori_task->_kv_ori = 14.0;
 
 	_posori_task->_desired_moment = Eigen::Vector3d(0.0,0.0,0.0);
 
@@ -50,6 +58,11 @@ SurfaceSurfaceAlignment::SurfaceSurfaceAlignment(Sai2Model::Sai2Model* robot,
 	// TODO make a nullspace criteria to avoid singularities and one to avoid obstacles
 	_joint_task->_desired_position = _robot->_q;
 	_joint_task->_desired_velocity.setZero(_robot->_dof);
+
+	_joint_task->_kp = 10.0;
+	_joint_task->_kv = 5.0;
+	std::cout << "task force at primitice creation : " << _posori_task->_task_force.transpose() << std::endl;
+	std::cout << "kp force at primitive creation : " << _posori_task->_kp_force << std::endl;
 }
 
 SurfaceSurfaceAlignment::~SurfaceSurfaceAlignment()
@@ -74,8 +87,14 @@ void SurfaceSurfaceAlignment::computeTorques(Eigen::VectorXd& torques)
 {
 	torques.setZero(_robot->_dof);
 
+	Eigen::Vector3d localz;
+	Eigen::Matrix3d R_base_link;
+	_robot->rotation(R_base_link, _link_name);
+	localz = R_base_link.col(2);
+	_posori_task->updateForceAxis(localz);
+	_posori_task->updateAngularMotionAxis(localz);
 
-	_posori_task->_desired_force = _T_base_control.rotation()*Eigen::Vector3d(0.0,0.0,_desired_normal_force);
+	_posori_task->_desired_force = _desired_normal_force * localz;
 
 	_posori_task->_desired_position = _desired_position;
 	_posori_task->_desired_orientation = _desired_orientation;
