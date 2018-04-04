@@ -59,13 +59,13 @@ void JointTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 	// get time since last call for the I term
 	if(_first_iteration)
 	{
-		_t_prev = std::chrono::system_clock::now();
-		_t_curr = std::chrono::system_clock::now();
+		_t_prev = std::chrono::high_resolution_clock::now();
+		_t_curr = std::chrono::high_resolution_clock::now();
 		_first_iteration = false;
 	}
 	else
 	{
-		_t_curr = std::chrono::system_clock::now();
+		_t_curr = std::chrono::high_resolution_clock::now();
 	}
 	_t_diff = _t_curr - _t_prev;
 
