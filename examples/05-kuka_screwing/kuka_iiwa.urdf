@@ -147,10 +147,10 @@
             </geometry>
         </visual>
         <visual>
-            <origin xyz="0 0 0.08" rpy="0 0 0" />
+            <origin xyz="0 0 0.03" rpy="0 0 0" />
             <geometry>
 <!--                 <box size="0.08 0.08 0.08" /> -->
-                <cylinder radius="0.125" length="0.05"/>
+                <cylinder radius="0.06" length="0.03"/>
             </geometry>
             <material name="material_ee">
                 <color rgba="0.1 0.1 0.5 1.0" />
@@ -163,13 +163,34 @@
             </geometry>
         </collision> -->
         <collision>
-            <origin xyz="0 0 0.08" rpy="0 0 0" />
+            <origin xyz="0 0 0.03" rpy="0 0 0" />
             <geometry>
 <!--                 <box size="0.08 0.08 0.08" /> -->
-                <cylinder radius="0.125" length="0.05"/>
+                <cylinder radius="0.06" length="0.03"/>
             </geometry>
         </collision>
     </link>
+
+<!--     <link name="nub">
+        <visual>
+            <origin xyz="0 0 0.03" rpy="0 0 0" />
+            <geometry>
+                <box size="0.08 0.01 0.03" />
+                <!-- <cylinder radius="0.06" length="0.03"/> -->
+<!--             </geometry>
+            <material name="material_ee">
+                <color rgba="0.1 0.1 0.5 1.0" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0.03" rpy="0 0 0" />
+            <geometry>
+                <box size="0.08 0.01 0.03" />
+                <!-- <cylinder radius="0.06" length="0.03"/> -->
+            <!-- </geometry> -->
+        <!-- </collision> -->
+    <!-- </link> --> --> -->
+
     <joint name="j0" type="revolute">
         <parent link="base_link" />
         <child link="link0" />
@@ -223,4 +244,11 @@
         <axis xyz="0 0 1" />
         <limit lower="-3.0543" upper="3.0543" effort="40" velocity="3.1416" />
     </joint>
+<!--     <joint name="fixedJoint" type="fixed">
+        <parent link="link6" />
+        <child link="nub" />
+        <origin xyz="0.000000 0.000000 0.081000" rpy="0.000000 0.000000 0.000000" />
+    </joint> -->
+
+
 </robot>

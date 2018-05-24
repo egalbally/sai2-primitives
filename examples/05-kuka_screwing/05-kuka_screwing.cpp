@@ -13,7 +13,7 @@
 #include "Sai2Simulation.h"
 #include <dynamics3d.h>
 
-// #include "primitives/RedundantArmMotion.h"
+#include "primitives/RedundantArmMotion.h" //ADDED
 #include "primitives/SurfaceSurfaceAlignment.h"
 #include "timer/LoopTimer.h"
 #include "force_sensor/ForceSensorSim.h"
@@ -219,10 +219,22 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 	Eigen::Affine3d sensor_frame_in_link = Eigen::Affine3d::Identity();
 	sensor_frame_in_link.translation() = pos_in_link;
 
-	// Motion arm primitive
+	// Surface Alignment primitive
 	Sai2Primitives::SurfaceSurfaceAlignment* surf_alignment_primitive = new Sai2Primitives::SurfaceSurfaceAlignment(robot, link_name, control_frame_in_link, sensor_frame_in_link);
 	Eigen::VectorXd surf_alignment_primitive_torques;
 	surf_alignment_primitive->enableGravComp();
+
+	// Motion arm primitive  //ADDED
+	Sai2Primitives::RedundantArmMotion* motion_primitive = new Sai2Primitives::RedundantArmMotion(robot, link_name, pos_in_link);
+	Eigen::VectorXd motion_primitive_torques;
+	motion_primitive->enableGravComp();
+
+	Eigen::Matrix3d initial_orientation;
+	Eigen::Vector3d initial_position;
+	robot->rotation(initial_orientation, motion_primitive->_link_name);
+	robot->position(initial_position, motion_primitive->_link_name, motion_primitive->_control_frame.translation());
+	//
+
 
 	// create a loop timer
 	double control_freq = 1000;
@@ -248,6 +260,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 
 		// update tasks model
 		surf_alignment_primitive->updatePrimitiveModel();
+		motion_primitive->updatePrimitiveModel(); //ADDED
 
 		// -------------------------------------------
 		////////////////////////////// Compute joint torques
@@ -259,11 +272,39 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		Eigen::Matrix3d R_sensor = R_link*sensor_frame_in_link.rotation();
 		surf_alignment_primitive->updateSensedForceAndMoment(- R_sensor.transpose() * sensed_force, - R_sensor.transpose() * sensed_moment);
 
+		// cout << surf_alignment_primitive_torques << endl;
+
+		// position part //ADDED
+		// double circle_radius = 0.05;
+		// double circle_freq = 0.33;
+		// motion_primitive->_desired_position = initial_position + circle_radius * Eigen::Vector3d(0.0, sin(2*M_PI*circle_freq*time), 1-cos(2*M_PI*circle_freq*time));
+		// motion_primitive->_desired_velocity = 2*M_PI*circle_freq*0.001*Eigen::Vector3d(0.0, cos(2*M_PI*circle_freq*time), sin(2*M_PI*circle_freq*time));
+		Eigen::Matrix3d R;
+			double theta = M_PI/2.0/1000.0 * (controller_counter);
+			// R << cos(theta) , 0 , sin(theta),
+			//           0     , 1 ,     0     ,
+			//     -sin(theta) , 0 , cos(theta);
+			R << cos(theta) , -sin(theta), 0,
+			     sin(theta) , cos(theta) , 0,
+			          0     ,      0     , 1;
+
+			motion_primitive->_desired_orientation = R*initial_orientation;
+			// motion_primitive->_desired_angular_velocity = Eigen::Vector3d::Zero();
+
+		// motion_primitive->_desired_orientation = ?? ADD STUFF HERE
+
 		// torques
 		surf_alignment_primitive->computeTorques(surf_alignment_primitive_torques);
+		motion_primitive->computeTorques(motion_primitive_torques); //ADDED
 
 		//------ Final torques
-		command_torques = surf_alignment_primitive_torques;
+		// command_torques = surf_alignment_primitive_torques;
+		// command_torques = motion_primitive_torques;
+		command_torques = surf_alignment_primitive_torques + motion_primitive_torques; //ADDED
+
+		cout << "Command Torques" << endl;
+		cout << command_torques << endl;
+
 		// command_torques.setZero();
 
 		// -------------------------------------------
