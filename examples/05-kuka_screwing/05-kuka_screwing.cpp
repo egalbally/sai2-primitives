@@ -1,6 +1,6 @@
 /*
  * Example of a controller for a Kuka arm made with the surface surface alignment primitive
- *
+ * 
  */
 
 #include <iostream>
@@ -324,8 +324,11 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* bottle, Force
 		sim->getJointVelocities (bottle_name, bottle->_dq);
 	 bottle->updateKinematics();
 
-	 bottle_qd(0) = 5.0/180.0*M_PI*sin(2*M_PI*0.12*time);
-	 bottle_qd(1) = 7.0/180.0*M_PI*sin(2*M_PI*0.08*time);
+		//desired velocity of the bottle - set to 0
+	 		// bottle_qd(0) = 5.0/180.0*M_PI*sin(2*M_PI*0.12*time);
+	 		// bottle_qd(1) = 7.0/180.0*M_PI*sin(2*M_PI*0.08*time);
+	 bottle_qd(0) = 0;	//desired velocity of the bottle - set to 0
+	 bottle_qd(1) = 0;
 
 	 bottle_torques = -1000.0* (bottle->_q - bottle_qd) - 75.0*bottle->_dq;
 
