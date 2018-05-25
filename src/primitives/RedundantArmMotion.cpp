@@ -53,10 +53,19 @@ RedundantArmMotion::~RedundantArmMotion()
 	_joint_task = NULL;
 }
 
-void RedundantArmMotion::updatePrimitiveModel()
+void RedundantArmMotion::updatePrimitiveModel(const Eigen::MatrixXd N_prec)
 {
-	_posori_task->updateTaskModel(Eigen::MatrixXd::Identity(_robot->_dof,_robot->_dof));
-	_joint_task->updateTaskModel(_posori_task->_N);
+	_N_prec = N_prec;
+	_posori_task->updateTaskModel(N_prec);
+	if(_redundancy_handling)
+	{
+		_joint_task->updateTaskModel(_posori_task->_N);
+		_N = Eigen::MatrixXd::Zero(_robot->dof() , _robot->dof());
+	}
+	else
+	{
+		_N = _posori_task->_N;
+	}
 }
 
 void RedundantArmMotion::computeTorques(Eigen::VectorXd& torques)
@@ -82,6 +91,10 @@ void RedundantArmMotion::computeTorques(Eigen::VectorXd& torques)
 	{
 		_robot->gravityVector(gravity_torques);
 	}
+	if(!_redundancy_handling)
+	{
+		joint_torques.setZero(_robot->_dof);
+	}
 
 	torques = posori_torques + joint_torques + gravity_torques;
 }
@@ -94,6 +107,16 @@ void RedundantArmMotion::enableGravComp()
 void RedundantArmMotion::disbleGravComp()
 {
 	_gravity_compensation = false;
+}
+
+void RedundantArmMotion::enableRedundancyHandling()
+{
+	_redundancy_handling = true;
+}
+
+void RedundantArmMotion::disableRedundancyHandling()
+{
+	_redundancy_handling = false;
 }
 
 } /* namespace Sai2Primitives */

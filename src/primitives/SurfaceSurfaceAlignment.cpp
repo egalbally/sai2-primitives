@@ -72,10 +72,19 @@ SurfaceSurfaceAlignment::~SurfaceSurfaceAlignment()
 	_joint_task = NULL;
 }
 
-void SurfaceSurfaceAlignment::updatePrimitiveModel()
+void SurfaceSurfaceAlignment::updatePrimitiveModel(const Eigen::MatrixXd N_prec)
 {
-	_posori_task->updateTaskModel(Eigen::MatrixXd::Identity(_robot->_dof,_robot->_dof));
-	_joint_task->updateTaskModel(_posori_task->_N);
+	_N_prec = N_prec;
+	_posori_task->updateTaskModel(N_prec);
+	if(_redundancy_handling)
+	{
+		_joint_task->updateTaskModel(_posori_task->_N);
+		_N = Eigen::MatrixXd::Zero(_robot->dof() , _robot->dof());
+	}
+	else
+	{
+		_N = _posori_task->_N;
+	}
 
 	Eigen::Affine3d T_base_link;
 	_robot->transform(T_base_link, _link_name, _control_frame.translation());
@@ -114,6 +123,10 @@ void SurfaceSurfaceAlignment::computeTorques(Eigen::VectorXd& torques)
 	{
 		_robot->gravityVector(gravity_torques);
 	}
+	if(!_redundancy_handling)
+	{
+		joint_torques.setZero(_robot->dof());
+	}
 
 	torques = posori_torques + joint_torques + gravity_torques;
 }
@@ -137,6 +150,16 @@ void SurfaceSurfaceAlignment::enableGravComp()
 void SurfaceSurfaceAlignment::disbleGravComp()
 {
 	_gravity_compensation = false;
+}
+
+void SurfaceSurfaceAlignment::enableRedundancyHandling()
+{
+	_redundancy_handling = true;
+}
+
+void SurfaceSurfaceAlignment::disableRedundancyHandling()
+{
+	_redundancy_handling = false;
 }
 
 void SurfaceSurfaceAlignment::enableOrthogonalPosControl()

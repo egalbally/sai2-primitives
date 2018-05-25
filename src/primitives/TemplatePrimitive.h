@@ -22,7 +22,7 @@ public:
 	 * @brief Updates the primitive model (dynamic quantities for op space and kinematics of the control frame position). 
 	 * Call it after calling the dunction updateModel of the robot model
 	 */
-	virtual void updatePrimitiveModel() = 0;
+	virtual void updatePrimitiveModel(const Eigen::MatrixXd N_prec) = 0;
 
 	/**
 	 * @brief Computes the joint torques associated with the primitive
@@ -32,6 +32,9 @@ public:
 	virtual void computeTorques(Eigen::VectorXd& torques) = 0;
 
 	Sai2Model::Sai2Model* _robot;
+
+	Eigen::MatrixXd _N_prec;
+	Eigen::MatrixXd _N;
 
 };
 

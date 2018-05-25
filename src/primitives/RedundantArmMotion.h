@@ -53,7 +53,7 @@ public:
 	 * @brief Updates the primitive model (dynamic quantities for op space and kinematics of the control frame position). 
 	 * Call it after calling the dunction updateModel of the robot model
 	 */
-	virtual void updatePrimitiveModel();
+	virtual void updatePrimitiveModel(const Eigen::MatrixXd N_prec);
 
 	/**
 	 * @brief Computes the joint torques associated with the primitive
@@ -74,6 +74,18 @@ public:
 	 */
 	void disbleGravComp();
 
+	/**
+	 * @brief Enable the redundancy handling at the primitive level (enabled by default by default)
+	 * @details Use when controlling a single robot arm
+	 */
+	void enableRedundancyHandling();
+
+	/**
+	 * @brief Disable the redundancy handling at the primitive level (enabled by default by default)
+	 * @details Use when controlling a multi-arm system or mobile manipulator
+	 */
+	void disableRedundancyHandling();
+
 	std::string _link_name;
 	Eigen::Affine3d _control_frame;
 
@@ -88,6 +100,7 @@ public:
 
 protected:
 	bool _gravity_compensation = false;
+	bool _redundancy_handling = true;
 
 
 };
