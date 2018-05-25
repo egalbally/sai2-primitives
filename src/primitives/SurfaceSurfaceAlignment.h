@@ -11,13 +11,14 @@
 #ifndef SAI2_PRIMITIVES_SURFACE_SURFACE_ALIGNMENT_H_
 #define SAI2_PRIMITIVES_SURFACE_SURFACE_ALIGNMENT_H_
 
+#include "TemplatePrimitive.h"
 #include "tasks/PosOriTask.h"
 #include "tasks/JointTask.h"
 
 namespace Sai2Primitives
 {
 
-class SurfaceSurfaceAlignment
+class SurfaceSurfaceAlignment : public TemplatePrimitive
 {
 public:
 
@@ -44,14 +45,14 @@ public:
 	 * @brief Updates the primitive model (dynamic quantities for op space and kinematics of the control frame position). 
 	 * Call it after calling the dunction updateModel of the robot model
 	 */
-	void updatePrimitiveModel();
+	virtual void updatePrimitiveModel();
 
 	/**
 	 * @brief Computes the joint torques associated with the primitive
 	 * 
 	 * @param torques   Vector that will be populated by the joint torques
 	 */
-	void computeTorques(Eigen::VectorXd& torques);
+	virtual void computeTorques(Eigen::VectorXd& torques);
 
 	/**
 	 * @brief Updates the sensed force and moments from the force sensor. The quantities need to be expressed in sensor frame
@@ -93,7 +94,6 @@ public:
 	 */
 	void enableOrthogonalRotControl();
 
-	Sai2Model::Sai2Model* _robot;
 	std::string _link_name;
 	Eigen::Affine3d _control_frame;
 	Eigen::Affine3d _sensor_frame;

@@ -9,13 +9,14 @@
 #ifndef SAI2_PRIMITIVES_REDUNDANTARM_MOTION_H_
 #define SAI2_PRIMITIVES_REDUNDANTARM_MOTION_H_
 
+#include "TemplatePrimitive.h"
 #include "tasks/PosOriTask.h"
 #include "tasks/JointTask.h"
 
 namespace Sai2Primitives
 {
 
-class RedundantArmMotion
+class RedundantArmMotion : public TemplatePrimitive
 {
 public:
 
@@ -52,14 +53,14 @@ public:
 	 * @brief Updates the primitive model (dynamic quantities for op space and kinematics of the control frame position). 
 	 * Call it after calling the dunction updateModel of the robot model
 	 */
-	void updatePrimitiveModel();
+	virtual void updatePrimitiveModel();
 
 	/**
 	 * @brief Computes the joint torques associated with the primitive
 	 * 
 	 * @param torques   Vector that will be populated by the joint torques
 	 */
-	void computeTorques(Eigen::VectorXd& torques);
+	virtual void computeTorques(Eigen::VectorXd& torques);
 
 	/**
 	 * @brief Enable the gravity compensation at the primitive level (disabled by default)
@@ -73,7 +74,6 @@ public:
 	 */
 	void disbleGravComp();
 
-	Sai2Model::Sai2Model* _robot;
 	std::string _link_name;
 	Eigen::Affine3d _control_frame;
 
