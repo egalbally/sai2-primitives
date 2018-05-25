@@ -156,6 +156,26 @@
                 <color rgba="0.1 0.1 0.5 1.0" />
             </material>
         </visual>
+        <visual>
+            <origin xyz="0 0 0.045" rpy="0 0 0" />
+            <geometry>
+                <box size="0.15 0.02 0.03" />
+                <!-- <cylinder radius="0.08" length="0.01"/> -->
+            </geometry>
+            <material name="material_ee">
+                <color rgba="0.1 0.1 0.5 1.0" />
+            </material>
+        </visual>
+        <visual>
+            <origin xyz="0 0 0.045" rpy="0 0 0" />
+            <geometry>
+                <box size="0.02 0.15 0.03" />
+                <!-- <cylinder radius="0.08" length="0.01"/> -->
+            </geometry>
+            <material name="material_ee">
+                <color rgba="0.1 0.1 0.5 1.0" />
+            </material>
+        </visual>
 <!--         <collision>
             <origin xyz="0 0 0" rpy="0 0 0" />
             <geometry>
@@ -176,8 +196,7 @@
             <origin xyz="0 0 0.03" rpy="0 0 0" />
             <geometry>
                 <box size="0.08 0.01 0.03" />
-                <!-- <cylinder radius="0.06" length="0.03"/> -->
-<!--             </geometry>
+            </geometry>
             <material name="material_ee">
                 <color rgba="0.1 0.1 0.5 1.0" />
             </material>
@@ -186,11 +205,10 @@
             <origin xyz="0 0 0.03" rpy="0 0 0" />
             <geometry>
                 <box size="0.08 0.01 0.03" />
-                <!-- <cylinder radius="0.06" length="0.03"/> -->
-            <!-- </geometry> -->
-        <!-- </collision> -->
-    <!-- </link> --> --> -->
-
+            </geometry>
+        </collision>
+    </link>
+ -->
     <joint name="j0" type="revolute">
         <parent link="base_link" />
         <child link="link0" />
