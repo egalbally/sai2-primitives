@@ -13,8 +13,16 @@ namespace Sai2Primitives
 {
 
 
-PositionTask::PositionTask(Sai2Model::Sai2Model* robot, std::string link_name, Eigen::Affine3d control_frame)
+PositionTask::PositionTask(Sai2Model::Sai2Model* robot, std::string link_name, Eigen::Affine3d control_frame) :
+	PositionTask(robot, link_name, control_frame.translation(), control_frame.linear()) {}
+
+PositionTask::PositionTask(Sai2Model::Sai2Model* robot, std::string link_name, Eigen::Vector3d pos_in_link, Eigen::Matrix3d rot_in_link)
 {
+
+	Eigen::Affine3d control_frame = Eigen::Affine3d::Identity();
+	control_frame.linear() = rot_in_link;
+	control_frame.translation() = pos_in_link;
+
 	_robot = robot;
 	_link_name = link_name;
 	_control_frame = control_frame;
@@ -27,45 +35,9 @@ PositionTask::PositionTask(Sai2Model::Sai2Model* robot, std::string link_name, E
 	_current_velocity.setZero();
 	_desired_velocity.setZero();
 
-	_kp = 0;
-	_kv = 0;
-	_ki = 0;
-
-	_task_force.setZero();
-	_integrated_position_error.setZero();
-
-	_jacobian.setZero(3,dof);
-	_projected_jacobian.setZero(3,dof);
-	_Lambda.setZero(3,3);
-	_Jbar.setZero(dof,3);
-	_N.setZero(dof,dof);
-	_N_prec = Eigen::MatrixXd::Identity(dof,dof);
-
-	_first_iteration = true;
-}
-
-PositionTask::PositionTask(Sai2Model::Sai2Model* robot, std::string link_name, Eigen::Vector3d pos_in_link, Eigen::Matrix3d rot_in_link)
-{
-	_robot = robot;
-	_link_name = link_name;
-
-	Eigen::Affine3d control_frame = Eigen::Affine3d::Identity();
-	control_frame.linear() = rot_in_link;
-	control_frame.translation() = pos_in_link;
-
-	_control_frame = control_frame;
-
-	int dof = _robot->_dof;
-
-	robot->position(_current_position, _link_name, _control_frame.translation());
-	robot->position(_desired_position, _link_name, _control_frame.translation());
-
-	_current_velocity.setZero();
-	_desired_velocity.setZero();
-
-	_kp = 0;
-	_kv = 0;
-	_ki = 0;
+	_kp = 50.0;
+	_kv = 14.0;
+	_ki = 0.0;
 
 	_task_force.setZero();
 	_integrated_position_error.setZero();

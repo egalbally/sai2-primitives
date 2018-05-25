@@ -37,6 +37,24 @@ public:
 	                   const Eigen::Affine3d sensor_frame = Eigen::Affine3d::Identity());
 
 	/**
+	 * @brief Constructor that needs the control frame and sensor frame in local link frame
+	 * @details Assumes the control frame Z axis is in the direction of the surface normel on the robot side
+	 * 
+	 * @param robot                       robot model
+	 * @param link_name                   link to which are attached the control frame and the sensor frame (end effector link)
+	 * @param control_pos_in_link         Position of the control frame origin in link frame
+	 * @param sensor_pos_in_link          Position of the sensor frame origin in link frame
+	 * @param control_rot_in_link         Orientation of the control frame origin in link frame
+	 * @param sensor_rot_in_link          Orientation of the sensor frame origin in link frame
+	 */
+	SurfaceSurfaceAlignment(Sai2Model::Sai2Model* robot,
+				   const std::string link_name,
+                   const Eigen::Vector3d control_pos_in_link,
+                   const Eigen::Vector3d sensor_pos_in_link,
+                   const Eigen::Matrix3d control_rot_in_link = Eigen::Matrix3d::Identity(),
+                   const Eigen::Matrix3d sensor_rot_in_link = Eigen::Matrix3d::Identity());
+
+	/**
 	 * @brief Destructor
 	 */
 	~SurfaceSurfaceAlignment();

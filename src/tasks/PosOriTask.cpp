@@ -13,84 +13,18 @@ namespace Sai2Primitives
 {
 
 
-PosOriTask::PosOriTask(Sai2Model::Sai2Model* robot, std::string link_name, Eigen::Affine3d control_frame)
-{
-	_robot = robot;
-	_link_name = link_name;
-	_control_frame = control_frame;
-
-	int dof = _robot->_dof;
-
-	// motion
-	_robot->position(_current_position, _link_name, _control_frame.translation());
-	_robot->position(_desired_position, _link_name, _control_frame.translation());
-	_robot->rotation(_current_orientation, _link_name);
-	_robot->rotation(_desired_orientation, _link_name);
-
-	_current_velocity.setZero();
-	_desired_velocity.setZero();
-	_current_angular_velocity.setZero();
-	_desired_angular_velocity.setZero();
-
-	_kp_pos = 0;
-	_kv_pos = 0;
-	_ki_pos = 0;
-	_kp_ori = 0;
-	_kv_ori = 0;
-	_ki_ori = 0;
-
-	_orientation_error.setZero();
-	_integrated_position_error.setZero();
-	_integrated_orientation_error.setZero();
-
-	_sigma_position = Eigen::Matrix3d::Identity();
-	_sigma_orientation = Eigen::Matrix3d::Identity();
-
-	// force
-	_T_control_to_sensor = Eigen::Affine3d::Identity();  
-
-	_desired_force.setZero();
-	_sensed_force.setZero();
-	_desired_moment.setZero();
-	_sensed_moment.setZero();
-
-	_kp_force = 0;
-	_kv_force = 0;
-	_ki_force = 0;
-	_kp_moment = 0;
-	_kv_moment = 0;
-	_ki_moment = 0;
-
-	_integrated_force_error.setZero();
-	_integrated_moment_error.setZero();
-
-	_sigma_force.setZero();
-	_sigma_moment.setZero();
-
-	_closed_loop_force_control = false;
-	_closed_loop_moment_control = false;
-
-	// model
-	_task_force.setZero(6);
-
-	_jacobian.setZero(6,dof);
-	_projected_jacobian.setZero(6,dof);
-	_Lambda.setZero(6,6);
-	_Jbar.setZero(dof,6);
-	_N.setZero(dof,dof);
-	_N_prec = Eigen::MatrixXd::Identity(dof,dof);
-
-	_first_iteration = true;
-}
+PosOriTask::PosOriTask(Sai2Model::Sai2Model* robot, std::string link_name, Eigen::Affine3d control_frame) :
+	PosOriTask(robot, link_name, control_frame.translation(), control_frame.linear()) {}
 
 PosOriTask::PosOriTask(Sai2Model::Sai2Model* robot, std::string link_name, Eigen::Vector3d pos_in_link, Eigen::Matrix3d rot_in_link)
 {
-	_robot = robot;
-	_link_name = link_name;
 
 	Eigen::Affine3d control_frame = Eigen::Affine3d::Identity();
 	control_frame.linear() = rot_in_link;
 	control_frame.translation() = pos_in_link;
+
+	_robot = robot;
+	_link_name = link_name;
 	_control_frame = control_frame;
 
 	int dof = _robot->_dof;
@@ -106,12 +40,12 @@ PosOriTask::PosOriTask(Sai2Model::Sai2Model* robot, std::string link_name, Eigen
 	_current_angular_velocity.setZero();
 	_desired_angular_velocity.setZero();
 
-	_kp_pos = 0;
-	_kv_pos = 0;
-	_ki_pos = 0;
-	_kp_ori = 0;
-	_kv_ori = 0;
-	_ki_ori = 0;
+	_kp_pos = 50.0;
+	_kv_pos = 14.0;
+	_ki_pos = 0.0;
+	_kp_ori = 50.0;
+	_kv_ori = 14.0;
+	_ki_ori = 0.0;
 
 	_orientation_error.setZero();
 	_integrated_position_error.setZero();
@@ -128,12 +62,12 @@ PosOriTask::PosOriTask(Sai2Model::Sai2Model* robot, std::string link_name, Eigen
 	_desired_moment.setZero();
 	_sensed_moment.setZero();
 
-	_kp_force = 0;
-	_kv_force = 0;
-	_ki_force = 0;
-	_kp_moment = 0;
-	_kv_moment = 0;
-	_ki_moment = 0;
+	_kp_force = 1.0;
+	_kv_force = 10.0;
+	_ki_force = 0.7;
+	_kp_moment = 1.0;
+	_kv_moment = 10.0;
+	_ki_moment = 0.7;
 
 	_integrated_force_error.setZero();
 	_integrated_moment_error.setZero();

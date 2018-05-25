@@ -25,9 +25,9 @@ JointTask::JointTask(Sai2Model::Sai2Model* robot)
 	_current_velocity.setZero(dof);
 	_desired_velocity.setZero(dof);
 
-	_kp = 0;
-	_kv = 0;
-	_ki = 0;
+	_kp = 50.0;
+	_kv = 14.0;
+	_ki = 0.0;
 
 	_task_force.setZero(dof);
 	_integrated_position_error.setZero(dof);
