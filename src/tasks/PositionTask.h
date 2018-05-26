@@ -70,6 +70,9 @@ public:
 	 */
 	virtual void computeTorques(Eigen::VectorXd& task_joint_torques);
 
+	void enableVelocitySaturation(const Eigen::Vector3d& saturation_velocity);
+	
+	void disableVelocitySaturation();
 
 	std::string _link_name;
 	Eigen::Affine3d _control_frame;
@@ -91,6 +94,9 @@ public:
 	Eigen::MatrixXd _Lambda;
 	Eigen::MatrixXd _Jbar;
 	Eigen::MatrixXd _N;
+
+	bool _velocity_saturation = false;
+	Eigen::Vector3d _saturation_velocity;
 
 };
 

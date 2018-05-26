@@ -39,6 +39,8 @@ PosOriTask::PosOriTask(Sai2Model::Sai2Model* robot, std::string link_name, Eigen
 	_desired_velocity.setZero();
 	_current_angular_velocity.setZero();
 	_desired_angular_velocity.setZero();
+	_linear_saturation_velocity.setZero();
+	_angular_saturation_velocity.setZero();
 
 	_kp_pos = 50.0;
 	_kv_pos = 14.0;
@@ -176,7 +178,26 @@ void PosOriTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 	_integrated_position_error += (_current_position - _desired_position) * _t_diff.count();
 
 	// final contribution
-	position_related_force = _sigma_position * ( -_kp_pos*(_current_position - _desired_position) - _kv_pos*(_current_velocity - _desired_velocity) - _ki_pos*_integrated_position_error);
+	if(_velocity_saturation)
+	{
+		_desired_velocity = -_kp_pos / _kv_pos * (_current_position - _desired_position) - _ki_pos / _kv_pos * _integrated_position_error;
+		for(int i=0; i<3; i++)
+		{
+			if(_desired_velocity(i) > _linear_saturation_velocity(i))
+			{
+				_desired_velocity(i) = _linear_saturation_velocity(i);
+			}
+			else if(_desired_velocity(i) < -_linear_saturation_velocity(i))
+			{
+				_desired_velocity(i) = -_linear_saturation_velocity(i);
+			}
+		}
+		position_related_force = _sigma_position * (-_kv_pos*(_current_velocity - _desired_velocity));
+	}
+	else
+	{
+		position_related_force = _sigma_position*(-_kp_pos*(_current_position - _desired_position) - _kv_pos*(_current_velocity - _desired_velocity ) - _ki_pos * _integrated_position_error);
+	}
 
 
 	// angular motion related terms
@@ -189,8 +210,26 @@ void PosOriTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 	_integrated_orientation_error += _orientation_error * _t_diff.count();
 
 	// final contribution
-	orientation_related_force = _sigma_orientation * ( -_kp_ori*_orientation_error - _kv_ori*(_current_angular_velocity - _desired_angular_velocity) - _ki_ori*_integrated_orientation_error);
-
+	if(_velocity_saturation)
+	{
+		_desired_angular_velocity = -_kp_ori / _kv_ori * _orientation_error - _ki_ori / _kv_ori * _integrated_position_error;
+		for(int i=0; i<3; i++)
+		{
+			if(_desired_angular_velocity(i) > _angular_saturation_velocity(i))
+			{
+				_desired_angular_velocity(i) = _angular_saturation_velocity(i);
+			}
+			else if(_desired_angular_velocity(i) < -_angular_saturation_velocity(i))
+			{
+				_desired_angular_velocity(i) = -_angular_saturation_velocity(i);
+			}
+		}
+		orientation_related_force = _sigma_orientation * (-_kv_ori*(_current_angular_velocity - _desired_angular_velocity));
+	}
+	else
+	{
+		orientation_related_force = _sigma_orientation * ( -_kp_ori*_orientation_error - _kv_ori*(_current_angular_velocity - _desired_angular_velocity) - _ki_ori*_integrated_orientation_error);
+	}
 
 	// compute task force
 	Eigen::VectorXd force_moment_contribution(6), position_orientation_contribution(6);
@@ -207,6 +246,33 @@ void PosOriTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 
 	// update previous time
 	_t_prev = _t_curr;
+}
+
+void PosOriTask::enableVelocitySaturation(const Eigen::Vector3d& linear_saturation_velocity, const Eigen::Vector3d& angular_saturation_velocity)
+{
+	_velocity_saturation = true;
+	_linear_saturation_velocity = linear_saturation_velocity;
+	_angular_saturation_velocity = angular_saturation_velocity;
+	for(int i=0; i<3; i++)
+	{
+		if(_linear_saturation_velocity(i) < 0)
+		{
+			std::cout << "WARNING : linear saturation velocity " << i << " should be positive. Set to zero" << std::endl;
+			_linear_saturation_velocity(i) = 0;
+		}
+		if(_angular_saturation_velocity(i) < 0)
+		{
+			std::cout << "WARNING : angular saturation velocity " << i << " should be positive. Set to zero" << std::endl;
+			_angular_saturation_velocity(i) = 0;
+		}
+	}
+}
+
+void PosOriTask::disableVelocitySaturation()
+{
+	_velocity_saturation = false;
+	_linear_saturation_velocity.setZero();
+	_angular_saturation_velocity.setZero();
 }
 
 void PosOriTask::setForceSensorFrame(const std::string link_name, const Eigen::Affine3d transformation_in_link)

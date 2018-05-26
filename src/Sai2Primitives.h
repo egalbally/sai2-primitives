@@ -1,0 +1,6 @@
+#include "tasks/JointTask.h"
+#include "tasks/PositionTask.h"
+#include "tasks/OrientationTask.h"
+#include "tasks/PosOriTask.h"
+#include "primitives/RedundantArmMotion.h"
+#include "primitives/SurfaceSurfaceAlignment.h"

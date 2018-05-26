@@ -83,6 +83,10 @@ public:
 	 */
 	virtual void computeTorques(Eigen::VectorXd& task_joint_torques);
 
+	void enableVelocitySaturation(const Eigen::Vector3d& linear_saturation_velocity, const Eigen::Vector3d& angular_saturation_velocity);
+	
+	void disableVelocitySaturation();
+
 	// -------- force control related methods --------
 
 	void setForceSensorFrame(const std::string link_name, const Eigen::Affine3d transformation_in_link);
@@ -303,6 +307,10 @@ public:
 	Eigen::MatrixXd _Lambda;
 	Eigen::MatrixXd _Jbar;
 	Eigen::MatrixXd _N;
+
+	bool _velocity_saturation = false;
+	Eigen::Vector3d _linear_saturation_velocity;
+	Eigen::Vector3d _angular_saturation_velocity;
 
 };
 

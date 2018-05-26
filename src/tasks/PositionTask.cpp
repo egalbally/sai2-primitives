@@ -34,6 +34,7 @@ PositionTask::PositionTask(Sai2Model::Sai2Model* robot, std::string link_name, E
 
 	_current_velocity.setZero();
 	_desired_velocity.setZero();
+	_saturation_velocity.setZero();
 
 	_kp = 50.0;
 	_kv = 14.0;
@@ -99,7 +100,26 @@ void PositionTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 	_current_velocity = _projected_jacobian * _robot->_dq;
 
 	// compute task force
-	_task_force = _Lambda*(-_kp*(_current_position - _desired_position) - _kv*(_current_velocity - _desired_velocity ) - _ki * _integrated_position_error);
+	if(_velocity_saturation)
+	{
+		_desired_velocity = -_kp / _kv * (_current_position - _desired_position) - _ki/_kv * _integrated_position_error;
+		for(int i=0; i<3; i++)
+		{
+			if(_desired_velocity(i) > _saturation_velocity(i))
+			{
+				_desired_velocity(i) = _saturation_velocity(i);
+			}
+			else if(_desired_velocity(i) < -_saturation_velocity(i))
+			{
+				_desired_velocity(i) = -_saturation_velocity(i);
+			}
+		}
+		_task_force = _Lambda * (-_kv*(_current_velocity - _desired_velocity));
+	}
+	else
+	{
+		_task_force = _Lambda*(-_kp*(_current_position - _desired_position) - _kv*(_current_velocity - _desired_velocity ) - _ki * _integrated_position_error);
+	}
 
 	// compute task torques
 	task_joint_torques = _projected_jacobian.transpose()*_task_force;
@@ -108,6 +128,25 @@ void PositionTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 	_t_prev = _t_curr;
 }
 
+void PositionTask::enableVelocitySaturation(const Eigen::Vector3d& saturation_velocity)
+{
+	_velocity_saturation = true;
+	_saturation_velocity = saturation_velocity;
+	for(int i=0; i<3; i++)
+	{
+		if(_saturation_velocity(i) < 0)
+		{
+			std::cout << "WARNING : saturation velocity " << i << " should be positive. Set to zero" << std::endl;
+			_saturation_velocity(i) = 0;
+		}
+	}
+}
+
+void PositionTask::disableVelocitySaturation()
+{
+	_velocity_saturation = false;
+	_saturation_velocity.setZero();
+}
 
 } /* namespace Sai2Primitives */
 
