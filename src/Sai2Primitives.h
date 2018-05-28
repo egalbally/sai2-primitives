@@ -4,3 +4,4 @@
 #include "tasks/PosOriTask.h"
 #include "primitives/RedundantArmMotion.h"
 #include "primitives/SurfaceSurfaceAlignment.h"
+#include "primitives/DualArmObjectMotion.h"

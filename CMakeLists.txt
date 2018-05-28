@@ -31,6 +31,7 @@ SET(TASKS_SOURCE
 SET(PRIMITIVES_SOURCE 
 	${PROJECT_SOURCE_DIR}/src/primitives/RedundantArmMotion.cpp
 	${PROJECT_SOURCE_DIR}/src/primitives/SurfaceSurfaceAlignment.cpp
+	${PROJECT_SOURCE_DIR}/src/primitives/DualArmObjectMotion.cpp
 	)
 
 # add header files
