@@ -224,8 +224,15 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 	Eigen::VectorXd surf_alignment_primitive_torques;
 	surf_alignment_primitive->enableGravComp();
 
+	// Screwing primitive  //ADDED
+	Sai2Primitives::SurfaceSurfaceAlignment* screwing_primitive = new Sai2Primitives::SurfaceSurfaceAlignment(robot, link_name, control_frame_in_link, sensor_frame_in_link);
+	Eigen::VectorXd screwing_primitive_torques;
+	screwing_primitive->enableGravComp();
+
+
 	// Motion arm primitive  //ADDED
-	Sai2Primitives::RedundantArmMotion* motion_primitive = new Sai2Primitives::RedundantArmMotion(robot, link_name, pos_in_link);
+	Sai2Primitives::SurfaceSurfaceAlignment* motion_primitive = new Sai2Primitives::SurfaceSurfaceAlignment(robot, link_name, control_frame_in_link, sensor_frame_in_link);
+	// Sai2Primitives::RedundantArmMotion* motion_primitive = new Sai2Primitives::RedundantArmMotion(robot, link_name, pos_in_link);
 	Eigen::VectorXd motion_primitive_torques;
 	motion_primitive->enableGravComp();
 
@@ -261,6 +268,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		// update tasks model
 		surf_alignment_primitive->updatePrimitiveModel();
 		motion_primitive->updatePrimitiveModel(); //ADDED
+		screwing_primitive->updatePrimitiveModel(); //ADDED
 
 		// -------------------------------------------
 		////////////////////////////// Compute joint torques
@@ -280,7 +288,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		// motion_primitive->_desired_position = initial_position + circle_radius * Eigen::Vector3d(0.0, sin(2*M_PI*circle_freq*time), 1-cos(2*M_PI*circle_freq*time));
 		// motion_primitive->_desired_velocity = 2*M_PI*circle_freq*0.001*Eigen::Vector3d(0.0, cos(2*M_PI*circle_freq*time), sin(2*M_PI*circle_freq*time));
 		Eigen::Matrix3d R;
-			double theta = M_PI/2.0/1000.0 * (controller_counter);
+			double theta = -M_PI/2.0/1000.0 * (controller_counter);
 			// R << cos(theta) , 0 , sin(theta),
 			//           0     , 1 ,     0     ,
 			//     -sin(theta) , 0 , cos(theta);
@@ -294,13 +302,19 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		// motion_primitive->_desired_orientation = ?? ADD STUFF HERE
 
 		// torques
-		surf_alignment_primitive->computeTorques(surf_alignment_primitive_torques);
-		motion_primitive->computeTorques(motion_primitive_torques); //ADDED
+		// screwing_primitive = surf_alignment_primitive + motion_primitive;
+		screwing_primitive = motion_primitive;
+		screwing_primitive->computeTorques(screwing_primitive_torques);
+
+
+		// surf_alignment_primitive->computeTorques(surf_alignment_primitive_torques);
+		// motion_primitive->computeTorques(motion_primitive_torques); //ADDED
 
 		//------ Final torques
 		// command_torques = surf_alignment_primitive_torques;
 		// command_torques = motion_primitive_torques;
-		command_torques = surf_alignment_primitive_torques + motion_primitive_torques; //ADDED
+		// command_torques = surf_alignment_primitive_torques + motion_primitive_torques; //ADDED
+		command_torques = screwing_primitive_torques;
 
 		cout << "Command Torques" << endl;
 		cout << command_torques << endl;
