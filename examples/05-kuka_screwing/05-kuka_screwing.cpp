@@ -1,5 +1,5 @@
 /*
- * Example of a controller for a Kuka arm made with the surface surface alignment primitive
+ * Example of a controller for a Kuka arm made with the screwing alignment primitive
  * 
  */
 
@@ -14,7 +14,7 @@
 #include <dynamics3d.h>
 
 #include "primitives/RedundantArmMotion.h" //ADDED
-#include "primitives/SurfaceSurfaceAlignment.h"
+#include "primitives/ScrewingAlignment.h"
 #include "timer/LoopTimer.h"
 #include "force_sensor/ForceSensorSim.h"
 #include "force_sensor/ForceSensorDisplay.h"
@@ -220,7 +220,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 	sensor_frame_in_link.translation() = pos_in_link;
 
 	// Screwing primitive  //ADDED
-	Sai2Primitives::SurfaceSurfaceAlignment* screwing_primitive = new Sai2Primitives::SurfaceSurfaceAlignment(robot, link_name, control_frame_in_link, sensor_frame_in_link);
+	Sai2Primitives::ScrewingAlignment* screwing_primitive = new Sai2Primitives::ScrewingAlignment(robot, link_name, control_frame_in_link, sensor_frame_in_link);
 	Eigen::VectorXd screwing_primitive_torques;
 	screwing_primitive->enableGravComp();
 
@@ -247,28 +247,21 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		// update time
 		double curr_time = timer.elapsedTime();
 		double loop_dt = curr_time - last_time;
+		double time = controller_counter/control_freq;
 
 		// read joint positions, velocities, update model
 		sim->getJointPositions(robot_name, robot->_q);
 		sim->getJointVelocities(robot_name, robot->_dq);
 		robot->updateModel();
 
-		double ee_height = robot->_q[3];
-
 		// update tasks model
 		screwing_primitive->updatePrimitiveModel(); //ADDED
-
-		// -------------------------------------------
-		// Compute joint torques
-		double time = controller_counter/control_freq;
 
 		// update sensed values (need to put them back in sensor frame)
 		Eigen::Matrix3d R_link;
 		robot->rotation(R_link, link_name);
 		Eigen::Matrix3d R_sensor = R_link*sensor_frame_in_link.rotation();
-		// surf_alignment_primitive->updateSensedForceAndMoment(- R_sensor.transpose() * sensed_force, - R_sensor.transpose() * sensed_moment);
-
-		// cout << surf_alignment_primitive_torques << endl
+		screwing_primitive->updateSensedForceAndMoment(- R_sensor.transpose() * sensed_force, - R_sensor.transpose() * sensed_moment);
 
 		#define MAX_ROTATION 270 	// max rotation in degrees
 		#define FORCE_THRESH 1 		// threshold force to begin screwing
@@ -309,19 +302,11 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 
 		// torques
 		screwing_primitive->computeTorques(screwing_primitive_torques);
-
 		command_torques = screwing_primitive_torques;
-
-		// command_torques.setZero();
-
-		// -------------------------------------------
 		sim->setJointTorques(robot_name, command_torques);
 
-
+		// update counter and timer
 		controller_counter++;
-
-		// -------------------------------------------
-		// update last time
 		last_time = curr_time;
 	}
 
@@ -363,15 +348,15 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* bottle, Force
 		// bottle controller
 		sim->getJointPositions (bottle_name, bottle->_q);
 		sim->getJointVelocities (bottle_name, bottle->_dq);
-	 bottle->updateKinematics();
+	 	bottle->updateKinematics();
 
 		//desired velocity of the bottle - set to 0
 	 		// bottle_qd(0) = 5.0/180.0*M_PI*sin(2*M_PI*0.12*time);
 	 		// bottle_qd(1) = 7.0/180.0*M_PI*sin(2*M_PI*0.08*time);
-	 bottle_qd(0) = 0;	//desired velocity of the bottle - set to 0
-	 bottle_qd(1) = 0;
+	 	bottle_qd(0) = 0;	//desired velocity of the bottle - set to 0
+	 	bottle_qd(1) = 0;
 
-	 bottle_torques = -1000.0* (bottle->_q - bottle_qd) - 75.0*bottle->_dq;
+	 	bottle_torques = -1000.0* (bottle->_q - bottle_qd) - 75.0*bottle->_dq;
 
 		sim->setJointTorques (bottle_name, bottle_torques);
 
