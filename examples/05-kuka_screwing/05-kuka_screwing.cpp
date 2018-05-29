@@ -219,29 +219,15 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 	Eigen::Affine3d sensor_frame_in_link = Eigen::Affine3d::Identity();
 	sensor_frame_in_link.translation() = pos_in_link;
 
-	// Surface Alignment primitive
-	Sai2Primitives::SurfaceSurfaceAlignment* surf_alignment_primitive = new Sai2Primitives::SurfaceSurfaceAlignment(robot, link_name, control_frame_in_link, sensor_frame_in_link);
-	Eigen::VectorXd surf_alignment_primitive_torques;
-	surf_alignment_primitive->enableGravComp();
-
 	// Screwing primitive  //ADDED
 	Sai2Primitives::SurfaceSurfaceAlignment* screwing_primitive = new Sai2Primitives::SurfaceSurfaceAlignment(robot, link_name, control_frame_in_link, sensor_frame_in_link);
 	Eigen::VectorXd screwing_primitive_torques;
 	screwing_primitive->enableGravComp();
 
-
-	// Motion arm primitive  //ADDED
-	Sai2Primitives::SurfaceSurfaceAlignment* motion_primitive = new Sai2Primitives::SurfaceSurfaceAlignment(robot, link_name, control_frame_in_link, sensor_frame_in_link);
-	// Sai2Primitives::RedundantArmMotion* motion_primitive = new Sai2Primitives::RedundantArmMotion(robot, link_name, pos_in_link);
-	Eigen::VectorXd motion_primitive_torques;
-	motion_primitive->enableGravComp();
-
 	Eigen::Matrix3d initial_orientation;
 	Eigen::Vector3d initial_position;
-	robot->rotation(initial_orientation, motion_primitive->_link_name);
-	robot->position(initial_position, motion_primitive->_link_name, motion_primitive->_control_frame.translation());
-	//
-
+	robot->rotation(initial_orientation, screwing_primitive->_link_name);
+	robot->position(initial_position, screwing_primitive->_link_name, screwing_primitive->_control_frame.translation());
 
 	// create a loop timer
 	double control_freq = 1000;
@@ -252,6 +238,8 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 	timer.initializeTimer(1000000); // 1 ms pause before starting loop
 
 	unsigned long long controller_counter = 0;
+	unsigned long long screw_counter = 0;
+	bool force_flag = false;		// robot has not yet encountered a z force greater than threshold
 
 	while (fSimulationRunning) { //automatically set to false when simulation is quit
 		fTimerDidSleep = timer.waitForNextLoop();
@@ -265,72 +253,70 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		sim->getJointVelocities(robot_name, robot->_dq);
 		robot->updateModel();
 
+		double ee_height = robot->_q[3];
+
 		// update tasks model
-		surf_alignment_primitive->updatePrimitiveModel();
-		motion_primitive->updatePrimitiveModel(); //ADDED
 		screwing_primitive->updatePrimitiveModel(); //ADDED
 
 		// -------------------------------------------
-		////////////////////////////// Compute joint torques
+		// Compute joint torques
 		double time = controller_counter/control_freq;
 
 		// update sensed values (need to put them back in sensor frame)
 		Eigen::Matrix3d R_link;
 		robot->rotation(R_link, link_name);
 		Eigen::Matrix3d R_sensor = R_link*sensor_frame_in_link.rotation();
-		surf_alignment_primitive->updateSensedForceAndMoment(- R_sensor.transpose() * sensed_force, - R_sensor.transpose() * sensed_moment);
+		// surf_alignment_primitive->updateSensedForceAndMoment(- R_sensor.transpose() * sensed_force, - R_sensor.transpose() * sensed_moment);
 
-		// cout << surf_alignment_primitive_torques << endl;
+		// cout << surf_alignment_primitive_torques << endl
 
-		// position part //ADDED
-		// double circle_radius = 0.05;
-		// double circle_freq = 0.33;
-		// motion_primitive->_desired_position = initial_position + circle_radius * Eigen::Vector3d(0.0, sin(2*M_PI*circle_freq*time), 1-cos(2*M_PI*circle_freq*time));
-		// motion_primitive->_desired_velocity = 2*M_PI*circle_freq*0.001*Eigen::Vector3d(0.0, cos(2*M_PI*circle_freq*time), sin(2*M_PI*circle_freq*time));
+		#define MAX_ROTATION 270 	// max rotation in degrees
+		#define FORCE_THRESH 1 		// threshold force to begin screwing
+
+		if(sensed_force[2] > FORCE_THRESH && force_flag == false)
+		{
+			force_flag = true;
+		}
+
 		Eigen::Matrix3d R;
-			double theta = -M_PI/2.0/1000.0 * (controller_counter);
-			// R << cos(theta) , 0 , sin(theta),
-			//           0     , 1 ,     0     ,
-			//     -sin(theta) , 0 , cos(theta);
+		double theta = -M_PI/2.0/1000.0 * (screw_counter);
+		double theta_deg = theta*180/M_PI;
+
+		if(-theta_deg <= MAX_ROTATION && force_flag == true )
+		{
+			if(screw_counter % 100 == 0)
+			{ 
+				cout << -theta_deg << endl; 
+				cout << endl;
+				cout << sensed_force << endl;
+				cout << endl;
+				cout << endl;
+			}
+
 			R << cos(theta) , -sin(theta), 0,
-			     sin(theta) , cos(theta) , 0,
-			          0     ,      0     , 1;
+		    	 sin(theta) , cos(theta) , 0,
+		        	  0     ,      0     , 1;
 
-			motion_primitive->_desired_orientation = R*initial_orientation;
-			// motion_primitive->_desired_angular_velocity = Eigen::Vector3d::Zero();
+			screwing_primitive->_desired_orientation = R*initial_orientation;
+			screw_counter ++;
 
-		// motion_primitive->_desired_orientation = ?? ADD STUFF HERE
+		}
+		else
+		{
+			screwing_primitive->_desired_orientation = initial_orientation;
+		}
+		// screwing_primitive->_desired_angular_velocity = Eigen::Vector3d::Zero();
 
 		// torques
-		// screwing_primitive = surf_alignment_primitive + motion_primitive;
-		screwing_primitive = motion_primitive;
 		screwing_primitive->computeTorques(screwing_primitive_torques);
 
-
-		// surf_alignment_primitive->computeTorques(surf_alignment_primitive_torques);
-		// motion_primitive->computeTorques(motion_primitive_torques); //ADDED
-
-		//------ Final torques
-		// command_torques = surf_alignment_primitive_torques;
-		// command_torques = motion_primitive_torques;
-		// command_torques = surf_alignment_primitive_torques + motion_primitive_torques; //ADDED
 		command_torques = screwing_primitive_torques;
-
-		cout << "Command Torques" << endl;
-		cout << command_torques << endl;
 
 		// command_torques.setZero();
 
 		// -------------------------------------------
 		sim->setJointTorques(robot_name, command_torques);
-		
 
-		// -------------------------------------------
-		if(controller_counter % 500 == 0)
-		{
-			// cout << time << endl;
-			// cout << endl;
-		}
 
 		controller_counter++;
 
