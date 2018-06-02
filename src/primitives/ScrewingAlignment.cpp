@@ -1,7 +1,8 @@
 /*
  * ScrewingAlignment.cpp
  *
- *      Author: Mikael Jorda
+ *      Author: Daniela Deschamps
+ *		Modified from SurfaceSurfaceAlignment.cpp written by Mikael Jorda
  */
 
 #include "ScrewingAlignment.h"
@@ -19,6 +20,7 @@ ScrewingAlignment::ScrewingAlignment(Sai2Model::Sai2Model* robot,
 	_link_name = link_name;
 	_control_frame = control_frame;
 	_sensor_frame = sensor_frame;
+	
 	Eigen::Affine3d T_base_link;
 	_robot->transform(T_base_link, _link_name, _control_frame.translation());
 	_T_base_control = T_base_link * _control_frame;
@@ -42,8 +44,13 @@ ScrewingAlignment::ScrewingAlignment(Sai2Model::Sai2Model* robot,
 	_posori_task->_ki_moment = 0.5;
 	_posori_task->_kv_moment = 10.0;
 
-	_posori_task->_kp_ori = 50.0;
-	_posori_task->_kv_ori = 14.0;
+
+	_posori_task->_kp_pos = 100.0;
+	_posori_task->_kv_pos = 20.0;
+	_posori_task->_kp_ori = 400.0;
+	_posori_task->_kv_ori = 40.0;
+	// _posori_task->_kp_ori = 50.0; //modified, originally 50
+	// _posori_task->_kv_ori = 14.0; //modified, originally 14
 
 	_posori_task->_desired_moment = Eigen::Vector3d(0.0,0.0,0.0);
 
@@ -53,14 +60,14 @@ ScrewingAlignment::ScrewingAlignment(Sai2Model::Sai2Model* robot,
 	_desired_velocity = _posori_task->_desired_velocity;
 	_desired_angular_velocity = _posori_task->_desired_angular_velocity;
 
-	_desired_normal_force = 5.0; // MODIFIED - Need to determine optimal force though
+	_desired_normal_force = 0; // MODIFIED - Need to determine optimal force though
 
 	// TODO make a nullspace criteria to avoid singularities and one to avoid obstacles
 	_joint_task->_desired_position = _robot->_q;
 	_joint_task->_desired_velocity.setZero(_robot->_dof);
 
-	_joint_task->_kp = 10.0;
-	_joint_task->_kv = 5.0;
+	_joint_task->_kp = 100.0; //modified, originally 10
+	_joint_task->_kv = 20.0;  //modified, originally 5
 	std::cout << "task force at primitice creation : " << _posori_task->_task_force.transpose() << std::endl;
 	std::cout << "kp force at primitive creation : " << _posori_task->_kp_force << std::endl;
 }
@@ -87,6 +94,7 @@ void ScrewingAlignment::computeTorques(Eigen::VectorXd& torques)
 {
 	torques.setZero(_robot->_dof);
 
+	//
 	Eigen::Vector3d localz;
 	Eigen::Matrix3d R_base_link;
 	_robot->rotation(R_base_link, _link_name);
@@ -95,6 +103,7 @@ void ScrewingAlignment::computeTorques(Eigen::VectorXd& torques)
 	_posori_task->updateAngularMotionAxis(localz);
 
 	_posori_task->_desired_force = _desired_normal_force * localz;
+	//
 
 	_posori_task->_desired_position = _desired_position;
 	_posori_task->_desired_orientation = _desired_orientation;
