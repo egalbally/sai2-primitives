@@ -83,7 +83,8 @@ int main (int argc, char** argv) {
 	// load simulation world
 	auto sim = new Simulation::Sai2Simulation(world_file, false);
 	sim->setCollisionRestitution(0);
-	sim->setCoeffFrictionStatic(0.4);
+	sim->setCoeffFrictionStatic(0);
+	sim->setCoeffFrictionDynamic(0);
 
 	// load robots
 	Eigen::Vector3d world_gravity = sim->_world->getGravity().eigen();
@@ -229,6 +230,8 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 	robot->rotation(initial_orientation, screwing_primitive->_link_name);
 	robot->position(initial_position, screwing_primitive->_link_name, screwing_primitive->_control_frame.translation());
 
+	cout << initial_position << endl;
+
 	// create a loop timer
 	double control_freq = 1000;
 	LoopTimer timer;
@@ -272,32 +275,54 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		}
 
 		Eigen::Matrix3d R;
+		Eigen::Vector3d T;
+		Eigen::Vector3d V;
 		double theta = -M_PI/2.0/1000.0 * (screw_counter);
 		double theta_deg = theta*180/M_PI;
 
-		if(-theta_deg <= MAX_ROTATION && force_flag == true )
-		{
-			if(screw_counter % 100 == 0)
-			{ 
-				cout << -theta_deg << endl; 
-				cout << endl;
-				cout << sensed_force << endl;
-				cout << endl;
-				cout << endl;
-			}
+		T << 0,
+			 -0.1,
+			 0;
 
-			R << cos(theta) , -sin(theta), 0,
-		    	 sin(theta) , cos(theta) , 0,
-		        	  0     ,      0     , 1;
+	    V << 0,
+	    	 -0.3,
+	    	 0;
 
-			screwing_primitive->_desired_orientation = R*initial_orientation;
-			screw_counter ++;
+		screwing_primitive->_desired_position = T + initial_position;
+		// screwing_primitive->_desired_velocity = V;
 
-		}
-		else
-		{
-			screwing_primitive->_desired_orientation = initial_orientation;
-		}
+		// double circle_radius = 0.05;
+		// double circle_freq = 0.33;
+		// screwing_primitive->_desired_position = initial_position + circle_radius * Eigen::Vector3d(0.0, sin(2*M_PI*circle_freq*time), 1-cos(2*M_PI*circle_freq*time));
+		// screwing_primitive->_desired_velocity = 2*M_PI*circle_freq*0.001*Eigen::Vector3d(0.0, cos(2*M_PI*circle_freq*time), sin(2*M_PI*circle_freq*time));
+
+
+		// if(-theta_deg <= MAX_ROTATION && force_flag == true )
+		// {
+		// 	// if(screw_counter % 100 == 0)
+		// 	// { 
+		// 	// 	cout << -theta_deg << endl; 
+		// 	// 	cout << endl;
+		// 	// 	cout << sensed_force.transpose() << endl;
+		// 	// 	cout << endl;
+		// 	// 	cout << screwing_primitive_torques[6] << endl; 
+		// 	// 	cout << endl;
+		// 	// 	cout << sensed_moment.transpose() << endl;
+		// 	// 	cout << endl;
+		// 	// }
+
+		// 	R << cos(theta) , -sin(theta), 0,
+		//     	 sin(theta) , cos(theta) , 0,
+		//         	  0     ,      0     , 1;
+
+		// 	screwing_primitive->_desired_orientation = R*initial_orientation;
+		// 	screw_counter ++;
+
+		// }
+		// else
+		// {
+		// 	screwing_primitive->_desired_orientation = initial_orientation;
+		// }
 		// screwing_primitive->_desired_angular_velocity = Eigen::Vector3d::Zero();
 
 		// torques
