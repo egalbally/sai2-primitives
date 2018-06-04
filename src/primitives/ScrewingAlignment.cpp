@@ -40,17 +40,19 @@ ScrewingAlignment::ScrewingAlignment(Sai2Model::Sai2Model* robot,
 
 	_posori_task->setClosedLoopMomentControl();
 
+	// _posori_task->_kp_moment = 0.0;
+	// _posori_task->_ki_moment = 0.0;
+	// _posori_task->_kv_moment = 0.0;
 	_posori_task->_kp_moment = 1.0;
 	_posori_task->_ki_moment = 0.5;
 	_posori_task->_kv_moment = 10.0;
 
-
-	_posori_task->_kp_pos = 100.0;
-	_posori_task->_kv_pos = 20.0;
-	_posori_task->_kp_ori = 400.0;
-	_posori_task->_kv_ori = 40.0;
-	// _posori_task->_kp_ori = 50.0; //modified, originally 50
-	// _posori_task->_kv_ori = 14.0; //modified, originally 14
+	// _posori_task->_kp_pos = 100.0;
+	// _posori_task->_kv_pos = 20.0;
+	// _posori_task->_kp_ori = 400.0;
+	// _posori_task->_kv_ori = 40.0;
+	_posori_task->_kp_ori = 50.0; //modified, originally 50
+	_posori_task->_kv_ori = 14.0; //modified, originally 14
 
 	_posori_task->_desired_moment = Eigen::Vector3d(0.0,0.0,0.0);
 
@@ -60,14 +62,14 @@ ScrewingAlignment::ScrewingAlignment(Sai2Model::Sai2Model* robot,
 	_desired_velocity = _posori_task->_desired_velocity;
 	_desired_angular_velocity = _posori_task->_desired_angular_velocity;
 
-	_desired_normal_force = 0; // MODIFIED - Need to determine optimal force though
+	_desired_normal_force = 5; // MODIFIED - Need to determine optimal force though
 
 	// TODO make a nullspace criteria to avoid singularities and one to avoid obstacles
 	_joint_task->_desired_position = _robot->_q;
 	_joint_task->_desired_velocity.setZero(_robot->_dof);
 
-	_joint_task->_kp = 100.0; //modified, originally 10
-	_joint_task->_kv = 20.0;  //modified, originally 5
+	_joint_task->_kp = 10.0; //modified, originally 10
+	_joint_task->_kv = 5.0;  //modified, originally 5
 	std::cout << "task force at primitice creation : " << _posori_task->_task_force.transpose() << std::endl;
 	std::cout << "kp force at primitive creation : " << _posori_task->_kp_force << std::endl;
 }
@@ -125,7 +127,8 @@ void ScrewingAlignment::computeTorques(Eigen::VectorXd& torques)
 		_robot->gravityVector(gravity_torques);
 	}
 
-	torques = posori_torques + joint_torques + gravity_torques;
+	// torques = posori_torques + joint_torques + gravity_torques;
+	torques = posori_torques + gravity_torques;
 }
 
 void ScrewingAlignment::updateSensedForceAndMoment(const Eigen::Vector3d sensed_force_sensor_frame, 

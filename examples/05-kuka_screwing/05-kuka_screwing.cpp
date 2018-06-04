@@ -220,17 +220,21 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 	Eigen::Affine3d sensor_frame_in_link = Eigen::Affine3d::Identity();
 	sensor_frame_in_link.translation() = pos_in_link;
 
-	// Screwing primitive  //ADDED
+	// Motion arm primitive - for initial alignment
+	Sai2Primitives::RedundantArmMotion* motion_primitive = new Sai2Primitives::RedundantArmMotion(robot, link_name, pos_in_link);
+	Eigen::VectorXd motion_primitive_torques;
+	motion_primitive->enableGravComp();
+
+	// Screwing primitive 
 	Sai2Primitives::ScrewingAlignment* screwing_primitive = new Sai2Primitives::ScrewingAlignment(robot, link_name, control_frame_in_link, sensor_frame_in_link);
 	Eigen::VectorXd screwing_primitive_torques;
 	screwing_primitive->enableGravComp();
 
+	Eigen::Matrix3d current_orientation;	
 	Eigen::Matrix3d initial_orientation;
 	Eigen::Vector3d initial_position;
-	robot->rotation(initial_orientation, screwing_primitive->_link_name);
-	robot->position(initial_position, screwing_primitive->_link_name, screwing_primitive->_control_frame.translation());
-
-	cout << initial_position << endl;
+	robot->rotation(initial_orientation, motion_primitive->_link_name);
+	robot->position(initial_position, motion_primitive->_link_name, motion_primitive->_control_frame.translation());
 
 	// create a loop timer
 	double control_freq = 1000;
@@ -243,6 +247,10 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 	unsigned long long controller_counter = 0;
 	unsigned long long screw_counter = 0;
 	bool force_flag = false;		// robot has not yet encountered a z force greater than threshold
+	bool setup_flag = false;		// triggered when setup of position and orientation are complete
+
+	double theta_deg = 0;
+	#define APPROACH_ANGLE 	10.0	// angle to approach bottle
 
 	while (fSimulationRunning) { //automatically set to false when simulation is quit
 		fTimerDidSleep = timer.waitForNextLoop();
@@ -259,6 +267,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 
 		// update tasks model
 		screwing_primitive->updatePrimitiveModel(); //ADDED
+		motion_primitive->updatePrimitiveModel();
 
 		// update sensed values (need to put them back in sensor frame)
 		Eigen::Matrix3d R_link;
@@ -266,50 +275,120 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		Eigen::Matrix3d R_sensor = R_link*sensor_frame_in_link.rotation();
 		screwing_primitive->updateSensedForceAndMoment(- R_sensor.transpose() * sensed_force, - R_sensor.transpose() * sensed_moment);
 
-		#define MAX_ROTATION 270 	// max rotation in degrees
-		#define FORCE_THRESH 1 		// threshold force to begin screwing
-
-		if(sensed_force[2] > FORCE_THRESH && force_flag == false)
+	// ------------------ APPROACH -----------------//
+		// initial approach setup using motion primitive, assuming small approach angle and position inaccuracies based on robot vision
+		
+		if(controller_counter < 3000)
 		{
-			force_flag = true;
+			// orientation part
+			if(theta_deg <= APPROACH_ANGLE)
+			{
+				Eigen::Matrix3d R;
+				double theta = -M_PI/2.0/500.0 * (controller_counter);
+				theta_deg = -theta*180/M_PI;
+				R <<      1     ,      0      ,      0     ,
+			   		      0     ,  cos(theta) , -sin(theta),
+			       		  0     ,  sin(theta) ,  cos(theta);
+
+				motion_primitive->_desired_orientation = R*initial_orientation;
+				cout << "......." << endl;
+				cout << theta << endl;
+				cout << endl;
+				cout << theta_deg << endl;
+			}
+
+			// position part
+			Eigen::Vector3d approach_point;
+			approach_point <<  0,
+							  -0.1,
+							  -0.15;
+
+			motion_primitive->_desired_position = initial_position + approach_point;
+
+			// torques
+			motion_primitive->computeTorques(motion_primitive_torques);
+			command_torques = motion_primitive_torques;
+			sim->setJointTorques(robot_name, command_torques);
+		}
+		
+	// -----------------------------------------------------------------//	
+		else
+		{
+
+			screwing_primitive->updateSensedForceAndMoment(- R_sensor.transpose() * sensed_force, - R_sensor.transpose() * sensed_moment);
+
+			screwing_primitive->computeTorques(screwing_primitive_torques);
+			command_torques = screwing_primitive_torques;
+			sim->setJointTorques(robot_name, command_torques);
 		}
 
-		Eigen::Matrix3d R;
-		Eigen::Vector3d T;
-		Eigen::Vector3d V;
-		double theta = -M_PI/2.0/1000.0 * (screw_counter);
-		double theta_deg = theta*180/M_PI;
 
-		T << 0,
-			 -0.1,
-			 0;
 
-	    V << 0,
-	    	 -0.3,
-	    	 0;
 
-		screwing_primitive->_desired_position = T + initial_position;
-		// screwing_primitive->_desired_velocity = V;
 
-		// double circle_radius = 0.05;
-		// double circle_freq = 0.33;
-		// screwing_primitive->_desired_position = initial_position + circle_radius * Eigen::Vector3d(0.0, sin(2*M_PI*circle_freq*time), 1-cos(2*M_PI*circle_freq*time));
-		// screwing_primitive->_desired_velocity = 2*M_PI*circle_freq*0.001*Eigen::Vector3d(0.0, cos(2*M_PI*circle_freq*time), sin(2*M_PI*circle_freq*time));
+
+
+
+		// #define MAX_ROTATION 	270 	// max rotation in degrees
+		// #define FORCE_THRESH 	1 		// threshold force to begin screwing
+
+
+		// if(sensed_force[2] > FORCE_THRESH && force_flag == false)
+		// {
+		// 	force_flag = true;
+		// }
+
+		// Eigen::Matrix3d R;
+		// Eigen::Vector3d T;
+		// Eigen::Vector3d V;
+		// // double theta = -M_PI/2.0/1000.0 * (screw_counter);
+		// double theta = -M_PI/2.0/1000.0 * controller_counter;
+		// // double theta_deg = theta*180/M_PI;
+		// // double theta = APPROACH_ANGLE * M_PI/180.0;
+		// // R <<      1     ,      0      ,      0     ,
+		// //    	      0     ,  cos(theta) , -sin(theta),
+		// //        	  0     ,  sin(theta) ,  cos(theta);
+
+		// 	// R << cos(theta) , -sin(theta), 0,
+		//  //    	 sin(theta) , cos(theta) , 0,
+		//  //        	  0     ,      0     , 1;
+		//     R << cos(theta) , 0 , sin(theta),
+		// 	          0     , 1 ,     0     ,
+		// 	    -sin(theta) , 0 , cos(theta);
+
+		// T << 0,
+		// 	 -0.1,
+		// 	 0.5;
+
+	 //    V << 0,
+	 //    	 0,
+	 //    	 0.1;
+
+		// // screwing_primitive->_desired_position = T + initial_position;
+		// // screwing_primitive->_desired_velocity = V;
+		// screwing_primitive->_desired_orientation = R*initial_orientation;
+		// // screwing_primitive->_desired_angular_velocity = Eigen::Vector3d::Zero();
+
+		// robot->rotation(current_orientation, screwing_primitive->_link_name);
 
 
 		// if(-theta_deg <= MAX_ROTATION && force_flag == true )
+
+	 //    if (-theta_deg <= MAX_ROTATION)
 		// {
-		// 	// if(screw_counter % 100 == 0)
-		// 	// { 
-		// 	// 	cout << -theta_deg << endl; 
-		// 	// 	cout << endl;
-		// 	// 	cout << sensed_force.transpose() << endl;
-		// 	// 	cout << endl;
-		// 	// 	cout << screwing_primitive_torques[6] << endl; 
-		// 	// 	cout << endl;
-		// 	// 	cout << sensed_moment.transpose() << endl;
-		// 	// 	cout << endl;
-		// 	// }
+		// 	if(screw_counter % 100 == 0)
+		// 	{ 
+		// 		// cout << -theta_deg << endl; 
+		// 		// cout << endl;
+		// 		cout << "Force: " << sensed_force.transpose() << endl;
+		// 		cout << endl;
+		// 		cout << "Moment: " << sensed_moment.transpose() << endl;
+		// 		cout << endl;
+		// 		cout << command_torques[6] << endl; 
+		// 		cout << endl;
+		// 		cout << screwing_primitive_torques[6] << endl; 
+		// 		cout << endl;
+		// 	}
 
 		// 	R << cos(theta) , -sin(theta), 0,
 		//     	 sin(theta) , cos(theta) , 0,
@@ -326,9 +405,28 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		// screwing_primitive->_desired_angular_velocity = Eigen::Vector3d::Zero();
 
 		// torques
-		screwing_primitive->computeTorques(screwing_primitive_torques);
-		command_torques = screwing_primitive_torques;
-		sim->setJointTorques(robot_name, command_torques);
+		// screwing_primitive->computeTorques(screwing_primitive_torques);
+		// screwing_torques = screwing_primitive_torques;
+		// sim->setJointTorques(robot_name, command_torques);
+
+		// if(controller_counter % 500 == 0)
+		// 	{ 
+		// 		// cout << -theta_deg << endl; 
+		// 		// cout << endl;
+		// 		// cout << "Force: " << sensed_force.transpose() << endl;
+		// 		// cout << endl;
+		// 		// cout << "Moment: " << sensed_moment.transpose() << endl;
+		// 		// cout << endl;
+		// 		// cout << command_torques << endl; 
+		// 		// cout << endl;
+		// 		cout << "................." << endl;
+		// 		cout << screwing_primitive->_desired_orientation << endl;
+		// 		cout << endl;
+		// 		cout << current_orientation<< endl;
+		// 		cout << endl;
+		// 		// cout << screwing_primitive_torques[6] << endl; 
+		// 		// cout << endl;
+		// 	}
 
 		// update counter and timer
 		controller_counter++;

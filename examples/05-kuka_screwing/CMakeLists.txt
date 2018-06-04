@@ -11,4 +11,4 @@ TARGET_LINK_LIBRARIES (05-kuka_screwing
 # NOTE: this requires an install build
 SET(RESOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/resources)
 FILE(MAKE_DIRECTORY ${RESOURCE_DIR})
-FILE(COPY world.urdf kuka_iiwa.urdf bottle.urdf Cap_NoThreads.mtl Cap_NoThreads.obj  DESTINATION ${RESOURCE_DIR})
+FILE(COPY world.urdf kuka_iiwa.urdf bottle.urdf Cap_NoThreads.mtl Cap_NoThreads.obj Bottle_NoThreads.mtl Bottle_NoThreads.obj  DESTINATION ${RESOURCE_DIR})
