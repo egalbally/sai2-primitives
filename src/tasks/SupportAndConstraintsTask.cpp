@@ -77,6 +77,15 @@ SupportAndConstraintsTask::SupportAndConstraintsTask(Sai2Model::Sai2Model* robot
 	_N.setZero(_robot->dof(), _robot->dof());
 	_Projector.setZero(_robot->dof() - _n_support_dof , _robot->dof());
 
+	_task_force.setZero(_n_ac_dof + _n_ic_dof);
+
+	_desired_active_forces.setZero(_n_ac_dof);
+	_desired_internal_forces.setZero(_n_ic_dof);
+
+	_Lambda_f = Eigen::MatrixXd::Zero(_n_ac_dof + _n_ic_dof, _n_ac_dof + _n_ic_dof);
+	_Jbar_f = Eigen::MatrixXd::Zero(_robot->dof(), _n_ac_dof + _n_ic_dof);
+	_projected_Jf = Eigen::MatrixXd::Zero(_robot->dof(), _robot->dof());
+
 }
 
 SupportAndConstraintsTask::SupportAndConstraintsTask(Sai2Model::Sai2Model* robot, 
@@ -92,7 +101,7 @@ SupportAndConstraintsTask::SupportAndConstraintsTask(Sai2Model::Sai2Model* robot
 	if(contact_link_names.size() != constrained_rotations.size() or 
 		contact_link_names.size() != contact_frames.size())
 	{
-		throw std::invalid_argument("Arguments inconsistents in SupportAndConstraintsTask");
+		throw std::invalid_argument("Arguments inconsistents in SupportAndConstraintsTask\n");
 	}
 
 	_n_contacts = contact_link_names.size();
@@ -124,11 +133,17 @@ SupportAndConstraintsTask::SupportAndConstraintsTask(Sai2Model::Sai2Model* robot
 	_active_contacts = active_contacts;
 	_uncontrolled_internal_forces = uncontrolled_internal_forces;
 
+
 	_n_ac_dof = _active_contacts.sum();
 	_n_pc_dof = _contact_dof - _n_ac_dof;
 	_n_iuc_dof = _uncontrolled_internal_forces.sum();
 	_n_ic_dof = _contact_dof - _n_iuc_dof - _n_support_dof;
 
+	if(_n_iuc_dof < _n_ac_dof)
+	{
+		throw std::invalid_argument("need at least as many uncontrolled internal dofs as active contacts in SupportAndConstraintsTask\n");
+	}
+	
 	_G11 = Eigen::MatrixXd::Zero(_n_ac_dof,_n_support_dof);
 	_G12 = Eigen::MatrixXd::Zero(_n_ac_dof,_n_ic_dof);
 	_G13 = Eigen::MatrixXd::Zero(_n_ac_dof,_n_iuc_dof);
@@ -144,6 +159,15 @@ SupportAndConstraintsTask::SupportAndConstraintsTask(Sai2Model::Sai2Model* robot
 	_N_prec.setIdentity(_robot->dof(), _robot->dof());
 	_N.setZero(_robot->dof(), _robot->dof());
 	_Projector.setZero(_robot->dof() - _n_support_dof , _robot->dof());
+
+	_task_force.setZero(_n_ac_dof + _n_ic_dof);
+
+	_desired_active_forces.setZero(_n_ac_dof);
+	_desired_internal_forces.setZero(_n_ic_dof);
+
+	_Lambda_f = Eigen::MatrixXd::Zero(_n_ac_dof + _n_ic_dof, _n_ac_dof + _n_ic_dof);
+	_Jbar_f = Eigen::MatrixXd::Zero(_robot->dof(), _n_ac_dof + _n_ic_dof);
+	_projected_Jf = Eigen::MatrixXd::Zero(_robot->dof(), _robot->dof());
 
 	// compute the projection matrices
 	Eigen::MatrixXd P1 = Eigen::MatrixXd::Zero(_n_ac_dof, _contact_dof);
@@ -198,14 +222,19 @@ SupportAndConstraintsTask::SupportAndConstraintsTask(Sai2Model::Sai2Model* robot
 }
 
 
-void SupportAndConstraintsTask::updateTaskModel()
+void SupportAndConstraintsTask::updateTaskModel(const Eigen::MatrixXd N_prec)
 {
 	Eigen::MatrixXd J_tmp = Eigen::MatrixXd::Zero(3, _robot->dof());
+	// Eigen::MatrixXd J_tmp_2 = Eigen::MatrixXd::Zero(6, _robot->dof());
 	int j = 0;
 	for(int i = 0; i < _robot->_environmental_contacts.size(); i++)
 	{
+		// J_tmp.setZero();
 		_robot->Jv(J_tmp, _robot->_environmental_contacts[i]._link_name, _robot->_environmental_contacts[i]._contact_position);
+		// _robot->J_0(J_tmp_2, _robot->_environmental_contacts[i]._link_name, _robot->_environmental_contacts[i]._contact_position);
 		_J_contact.block(3*i, 0, 3, _robot->dof()) = J_tmp;
+		// std::cout << "contact number : " << i << std::endl;
+		// std::cout << "diff in Jv and top of J_0 : " << (J_tmp - J_tmp_2.block(0,0,3,_robot->dof())).norm() << std::endl;
 		if(_robot->_environmental_contacts[i]._constrained_rotations > 0)
 		{
 			_robot->Jw(J_tmp, _robot->_environmental_contacts[i]._link_name);
@@ -213,6 +242,7 @@ void SupportAndConstraintsTask::updateTaskModel()
 			j++;
 		}
 	}
+	// std::cout << std::endl;
 
 	_J_contact = _P * _J_contact;
 
@@ -247,7 +277,7 @@ void SupportAndConstraintsTask::updateTaskModel()
 	S.block(0, 6, _robot->dof() - _n_support_dof , _robot->dof() - _n_support_dof) = Eigen::MatrixXd::Identity(_robot->dof() - _n_support_dof , _robot->dof() - _n_support_dof);
 
 	Eigen::MatrixXd SN = S*Ns;
-	Eigen::MatrixXd phi_star_inv;
+	Eigen::MatrixXd phi_star_inv = Eigen::MatrixXd::Zero(_robot->dof() - _n_support_dof , _robot->dof() - _n_support_dof);
 	_robot->taskInertiaMatrixWithPseudoInv(phi_star_inv, SN);
 	Eigen::MatrixXd SN_bar = _robot->_M_inv * (SN.transpose() * phi_star_inv);
 	_Projector = SN_bar.transpose();
@@ -255,12 +285,8 @@ void SupportAndConstraintsTask::updateTaskModel()
 	// internal forces task
 	_Jf.block(0,0,_n_ac_dof,_robot->dof()) = _J_ac + G13_inv.transpose()*_G23.transpose()*_J_pc;
 	_Jf.block(_n_ac_dof,0,_n_ic_dof,_robot->dof()) = (_G22.transpose() - _G12.transpose()*G13_inv.transpose()*_G23.transpose())*_J_pc;
-	_Jf = _Jf*_N_prec;
-	Eigen::MatrixXd Lambda_f = Eigen::MatrixXd::Zero(_n_ac_dof + _n_ic_dof, _n_ac_dof + _n_ic_dof);
-	Eigen::MatrixXd Jbar_f = Eigen::MatrixXd::Zero(_robot->dof(), _n_ac_dof + _n_ic_dof);
-	Eigen::MatrixXd N_f = Eigen::MatrixXd::Zero(_robot->dof(), _robot->dof());
-	_robot->operationalSpaceMatrices(Lambda_f,Jbar_f,N_f,_Jf,_N_prec);
-	_N = N_f;
+	_projected_Jf = _Jf*_N_prec;
+	_robot->operationalSpaceMatrices(_Lambda_f, _Jbar_f, _N, _projected_Jf, _N_prec);
 
 }
 
@@ -268,6 +294,15 @@ void SupportAndConstraintsTask::updateTaskModel()
 void SupportAndConstraintsTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 {
 
+	_desired_forces.setZero(_n_ac_dof + _n_ic_dof);
+
+	_desired_forces.head(_n_ac_dof) = _desired_active_forces;
+	_desired_forces.tail(_n_ic_dof) = _desired_internal_forces;
+
+	// TODO : open loop for now
+	_task_force = _desired_forces;
+
+	task_joint_torques = _projected_Jf.transpose() * _task_force;
 }
 
 } /* namespace Sai2Primitives */

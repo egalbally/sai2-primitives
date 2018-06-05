@@ -65,7 +65,7 @@ public:
 
 	// -------- core methods --------
 
-	virtual void updateTaskModel();
+	virtual void updateTaskModel(const Eigen::MatrixXd N_prec);
 
 	/**
 	 * @brief Computes the torques associated with this task.
@@ -105,6 +105,14 @@ public:
 	Eigen::MatrixXd _N;
 	Eigen::MatrixXd _Projector;
 
+	// internal forces  and active forces control
+	Eigen::VectorXd _desired_internal_forces;
+	Eigen::VectorXd _desired_active_forces;
+	Eigen::VectorXd _desired_forces;
+
+	Eigen::MatrixXd _Lambda_f;
+	Eigen::MatrixXd _projected_Jf;
+	Eigen::MatrixXd _Jbar_f;
 
 };
 
