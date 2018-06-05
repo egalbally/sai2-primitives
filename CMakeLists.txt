@@ -4,7 +4,8 @@ PROJECT (SAI2-PRIMITIVES)
 SET (PROJECT_VERSION 0.1.0) #major version is zero for now since api will certainly change in future
 
 SET(CMAKE_CXX_FLAGS "-std=c++11 -I/usr/include -I/usr/local/include")
-SET(CMAKE_BUILD_TYPE "Debug")
+# SET(CMAKE_BUILD_TYPE "Debug")
+SET(CMAKE_BUILD_TYPE "Release")
 
 # include Eigen
 set(EIGEN3_INCLUDE_DIR $ENV{EIGEN3_INCLUDE_DIR})
@@ -25,6 +26,7 @@ SET(TASKS_SOURCE
 	${PROJECT_SOURCE_DIR}/src/tasks/OrientationTask.cpp
 	${PROJECT_SOURCE_DIR}/src/tasks/PosOriTask.cpp
 	${PROJECT_SOURCE_DIR}/src/tasks/JointTask.cpp
+	${PROJECT_SOURCE_DIR}/src/tasks/SupportAndConstraintsTask.cpp
 	)
 
 # add primitives 
