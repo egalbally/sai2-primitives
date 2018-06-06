@@ -76,6 +76,8 @@ public:
 	 */
 	virtual void computeTorques(Eigen::VectorXd& task_joint_torques);
 
+	void updateContactsModel();
+
 	//------------------------------------------------
 	// Attributes
 	//------------------------------------------------

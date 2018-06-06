@@ -84,7 +84,7 @@ SupportAndConstraintsTask::SupportAndConstraintsTask(Sai2Model::Sai2Model* robot
 
 	_Lambda_f = Eigen::MatrixXd::Zero(_n_ac_dof + _n_ic_dof, _n_ac_dof + _n_ic_dof);
 	_Jbar_f = Eigen::MatrixXd::Zero(_robot->dof(), _n_ac_dof + _n_ic_dof);
-	_projected_Jf = Eigen::MatrixXd::Zero(_robot->dof(), _robot->dof());
+	_projected_Jf = Eigen::MatrixXd::Zero(_n_ac_dof + _n_ic_dof, _robot->dof());
 
 }
 
@@ -143,7 +143,6 @@ SupportAndConstraintsTask::SupportAndConstraintsTask(Sai2Model::Sai2Model* robot
 	{
 		throw std::invalid_argument("need at least as many uncontrolled internal dofs as active contacts in SupportAndConstraintsTask\n");
 	}
-	
 	_G11 = Eigen::MatrixXd::Zero(_n_ac_dof,_n_support_dof);
 	_G12 = Eigen::MatrixXd::Zero(_n_ac_dof,_n_ic_dof);
 	_G13 = Eigen::MatrixXd::Zero(_n_ac_dof,_n_iuc_dof);
@@ -167,7 +166,7 @@ SupportAndConstraintsTask::SupportAndConstraintsTask(Sai2Model::Sai2Model* robot
 
 	_Lambda_f = Eigen::MatrixXd::Zero(_n_ac_dof + _n_ic_dof, _n_ac_dof + _n_ic_dof);
 	_Jbar_f = Eigen::MatrixXd::Zero(_robot->dof(), _n_ac_dof + _n_ic_dof);
-	_projected_Jf = Eigen::MatrixXd::Zero(_robot->dof(), _robot->dof());
+	_projected_Jf = Eigen::MatrixXd::Zero(_n_ac_dof + _n_ic_dof, _robot->dof());
 
 	// compute the projection matrices
 	Eigen::MatrixXd P1 = Eigen::MatrixXd::Zero(_n_ac_dof, _contact_dof);
@@ -304,6 +303,67 @@ void SupportAndConstraintsTask::computeTorques(Eigen::VectorXd& task_joint_torqu
 
 	task_joint_torques = _projected_Jf.transpose() * _task_force;
 }
+
+void SupportAndConstraintsTask::updateContactsModel()
+{
+
+	_n_contacts = _robot->_environmental_contacts.size();
+	_contact_dof = 0;
+	for(int i = 0 ; i < _robot->_environmental_contacts.size() ; i++)
+	{
+		_contact_dof += 3;
+		if(_robot->_environmental_contacts[i]._constrained_rotations > 0)
+		{
+			_contact_dof += 1 + _robot->_environmental_contacts[i]._constrained_rotations;
+		}
+	}
+
+	// grasp matrix related
+	_G.setZero(_contact_dof, _contact_dof);
+	_G_permuted.setZero(_contact_dof, _contact_dof);
+	_Gbar.setZero(_contact_dof, _contact_dof);
+
+	_P = Eigen::MatrixXd::Identity(_contact_dof, _contact_dof);
+	_Q = Eigen::MatrixXd::Identity(_contact_dof, _contact_dof);
+	_Rg = Eigen::Matrix3d::Identity();
+
+	_active_contacts.setZero(_contact_dof);
+	_uncontrolled_internal_forces.setZero(_contact_dof-6);
+
+	_n_ac_dof = 0;
+	_n_pc_dof = _contact_dof;
+	_n_ic_dof = _contact_dof - _n_support_dof;
+	_n_iuc_dof = 0;
+
+	_G11 = Eigen::MatrixXd::Zero(_n_ac_dof,_n_support_dof);
+	_G12 = Eigen::MatrixXd::Zero(_n_ac_dof,_n_ic_dof);
+	_G13 = Eigen::MatrixXd::Zero(_n_ac_dof,_n_iuc_dof);
+	_G21 = Eigen::MatrixXd::Zero(_n_pc_dof,_n_support_dof);
+	_G22 = Eigen::MatrixXd::Zero(_n_pc_dof,_n_ic_dof);
+	_G23 = Eigen::MatrixXd::Zero(_n_pc_dof,_n_iuc_dof);
+
+
+	_J_contact.setZero(_contact_dof, _robot->dof());
+	_J_ac.setZero(_n_ac_dof, _robot->dof());
+	_J_pc.setZero(_n_pc_dof, _robot->dof());
+	_Js.setZero(_n_support_dof, _robot->dof()); 
+	_Jf.setZero(_n_ac_dof + _n_ic_dof, _robot->dof());
+	_N_prec.setIdentity(_robot->dof(), _robot->dof());
+	_N.setZero(_robot->dof(), _robot->dof());
+	_Projector.setZero(_robot->dof() - _n_support_dof , _robot->dof());
+
+	_task_force.setZero(_n_ac_dof + _n_ic_dof);
+
+	_desired_active_forces.setZero(_n_ac_dof);
+	_desired_internal_forces.setZero(_n_ic_dof);
+
+	_Lambda_f = Eigen::MatrixXd::Zero(_n_ac_dof + _n_ic_dof, _n_ac_dof + _n_ic_dof);
+	_Jbar_f = Eigen::MatrixXd::Zero(_robot->dof(), _n_ac_dof + _n_ic_dof);
+	_projected_Jf = Eigen::MatrixXd::Zero(_n_ac_dof + _n_ic_dof, _robot->dof());	
+
+	updateTaskModel(Eigen::MatrixXd::Identity(_robot->dof() , _robot->dof()));
+}
+
 
 } /* namespace Sai2Primitives */
 
