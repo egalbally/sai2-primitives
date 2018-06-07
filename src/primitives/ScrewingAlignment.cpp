@@ -40,21 +40,19 @@ ScrewingAlignment::ScrewingAlignment(Sai2Model::Sai2Model* robot,
 
 	_posori_task->setClosedLoopMomentControl();
 
-	// _posori_task->_kp_moment = 0.0;
-	// _posori_task->_ki_moment = 0.0;
-	// _posori_task->_kv_moment = 0.0;
-	_posori_task->_kp_moment = 1.0;
-	_posori_task->_ki_moment = 0.5;
-	_posori_task->_kv_moment = 10.0;
+	_posori_task->_kp_moment = 50.0;  	// originally 1.0
+	// _posori_task->_ki_moment = 0.5;	  	// originally 0.5
+	// _posori_task->_kv_moment = 10.0;	// originally 10.0
 
-	// _posori_task->_kp_pos = 100.0;
-	// _posori_task->_kv_pos = 20.0;
-	// _posori_task->_kp_ori = 400.0;
-	// _posori_task->_kv_ori = 40.0;
+	_posori_task->_kp_force = 100.0; // added
+
+	// _posori_task->_kp_pos = 100.0;  // added
+	// _posori_task->_kv_pos = 20.0;	// added
+
 	_posori_task->_kp_ori = 50.0; //modified, originally 50
 	_posori_task->_kv_ori = 14.0; //modified, originally 14
 
-	_posori_task->_desired_moment = Eigen::Vector3d(0.0,0.0,0.0);
+	// _posori_task->_desired_moment = Eigen::Vector3d(0.0,0.0,0.0);
 
 	_desired_position = _posori_task->_desired_position;
 	_desired_orientation = _posori_task->_desired_orientation;
@@ -62,15 +60,15 @@ ScrewingAlignment::ScrewingAlignment(Sai2Model::Sai2Model* robot,
 	_desired_velocity = _posori_task->_desired_velocity;
 	_desired_angular_velocity = _posori_task->_desired_angular_velocity;
 
-	_desired_normal_force = 5; // MODIFIED - Need to determine optimal force though
+	_desired_normal_force = 10; // MODIFIED - Need to determine optimal force though
 
 	// TODO make a nullspace criteria to avoid singularities and one to avoid obstacles
-	_joint_task->_desired_position = _robot->_q;
-	_joint_task->_desired_velocity.setZero(_robot->_dof);
+	// _joint_task->_desired_position = _robot->_q;
+	// _joint_task->_desired_velocity.setZero(_robot->_dof);
 
-	_joint_task->_kp = 10.0; //modified, originally 10
-	_joint_task->_kv = 5.0;  //modified, originally 5
-	std::cout << "task force at primitice creation : " << _posori_task->_task_force.transpose() << std::endl;
+	// _joint_task->_kp = 10.0; //modified, originally 10
+	// _joint_task->_kv = 5.0;  //modified, originally 5
+	std::cout << "task force at primitive creation : " << _posori_task->_task_force.transpose() << std::endl;
 	std::cout << "kp force at primitive creation : " << _posori_task->_kp_force << std::endl;
 }
 
@@ -104,8 +102,29 @@ void ScrewingAlignment::computeTorques(Eigen::VectorXd& torques)
 	_posori_task->updateForceAxis(localz);
 	_posori_task->updateAngularMotionAxis(localz);
 
-	_posori_task->_desired_force = _desired_normal_force * localz;
-	//
+	Eigen::Vector3d globalz;
+	globalz << 0,
+			   0,
+			   -1;
+
+	_posori_task->_desired_force = _desired_normal_force * globalz; 
+
+	_posori_task->_desired_moment = 0 * globalz; 
+
+	
+	// std::cout << "-------------" << std::endl;
+	// std::cout << "desired force" << std::endl;
+	// std::cout << _posori_task->_desired_force << std::endl; 
+	// std::cout << "desired moment" << std::endl;
+	// std::cout <<  << std::endl;
+
+
+
+	/* localz shows the components of the ee position that are in the operational space z direction (does the operational space z direction shift with orientation of the plate in the surface alignment example????)
+		the _posori_task->_desired_force splits the 5N desired normal force into components
+
+	*/
+
 
 	_posori_task->_desired_position = _desired_position;
 	_posori_task->_desired_orientation = _desired_orientation;
@@ -127,8 +146,8 @@ void ScrewingAlignment::computeTorques(Eigen::VectorXd& torques)
 		_robot->gravityVector(gravity_torques);
 	}
 
-	// torques = posori_torques + joint_torques + gravity_torques;
-	torques = posori_torques + gravity_torques;
+	torques = posori_torques + joint_torques + gravity_torques;
+	// torques = posori_torques + gravity_torques;
 }
 
 void ScrewingAlignment::updateSensedForceAndMoment(const Eigen::Vector3d sensed_force_sensor_frame, 

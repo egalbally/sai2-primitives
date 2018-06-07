@@ -297,11 +297,11 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 				cout << theta_deg << endl;
 			}
 
-			// position part
+			// position part - would be replaced by point determined by robot vision
 			Eigen::Vector3d approach_point;
 			approach_point <<  0,
-							  -0.1,
-							  -0.15;
+							  -0.10,
+							  -0.18;
 
 			motion_primitive->_desired_position = initial_position + approach_point;
 
@@ -314,12 +314,34 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 	// -----------------------------------------------------------------//	
 		else
 		{
+			Eigen::Vector3d cap_point;
+			cap_point <<  0,
+						 -0.10,
+						 -0.10;
+			screwing_primitive->_desired_position = initial_position + cap_point;
 
 			screwing_primitive->updateSensedForceAndMoment(- R_sensor.transpose() * sensed_force, - R_sensor.transpose() * sensed_moment);
 
 			screwing_primitive->computeTorques(screwing_primitive_torques);
 			command_torques = screwing_primitive_torques;
 			sim->setJointTorques(robot_name, command_torques);
+
+			// approach bottle
+			// make contact with bottle
+			// note the orientation of the normal force
+			// based on force orientation determine which direction to slide, until a clunk is felt
+			// once clunk is felt, then start screwing (backwards then forwards)
+				// SEE ELENA'S CODE FOR HOW TO SET UP THE STATE MACHINE????
+
+		if(controller_counter % 500 == 0)
+			{ 
+				cout << "-------------" << endl;
+				cout << "sensed_force" << endl;
+				cout << sensed_force << endl; 
+				cout << "sensed_moment" << endl;
+				cout << sensed_moment << endl; 
+			}
+
 		}
 
 
