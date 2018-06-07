@@ -42,9 +42,10 @@ ScrewingAlignment::ScrewingAlignment(Sai2Model::Sai2Model* robot,
 
 	_posori_task->_kp_moment = 50.0;  	// originally 1.0
 	// _posori_task->_ki_moment = 0.5;	  	// originally 0.5
-	// _posori_task->_kv_moment = 10.0;	// originally 10.0
+	_posori_task->_kv_moment = 0.1;	// originally 10.0
 
 	_posori_task->_kp_force = 100.0; // added
+	_posori_task->_kv_force = 0.1;		
 
 	// _posori_task->_kp_pos = 100.0;  // added
 	// _posori_task->_kv_pos = 20.0;	// added
@@ -55,12 +56,12 @@ ScrewingAlignment::ScrewingAlignment(Sai2Model::Sai2Model* robot,
 	// _posori_task->_desired_moment = Eigen::Vector3d(0.0,0.0,0.0);
 
 	_desired_position = _posori_task->_desired_position;
-	_desired_orientation = _posori_task->_desired_orientation;
+	// _desired_orientation = _posori_task->_desired_orientation;
 
 	_desired_velocity = _posori_task->_desired_velocity;
 	_desired_angular_velocity = _posori_task->_desired_angular_velocity;
 
-	_desired_normal_force = 10; // MODIFIED - Need to determine optimal force though
+	_desired_normal_force = 50; // MODIFIED - Need to determine optimal force though
 
 	// TODO make a nullspace criteria to avoid singularities and one to avoid obstacles
 	// _joint_task->_desired_position = _robot->_q;
@@ -90,7 +91,7 @@ void ScrewingAlignment::updatePrimitiveModel()
 	_T_base_control = T_base_link * _control_frame;
 }
 
-void ScrewingAlignment::computeTorques(Eigen::VectorXd& torques)
+void ScrewingAlignment::computeTorques(Eigen::VectorXd& torques, bool countflag)
 {
 	torques.setZero(_robot->_dof);
 
@@ -111,7 +112,7 @@ void ScrewingAlignment::computeTorques(Eigen::VectorXd& torques)
 
 	_posori_task->_desired_moment = 0 * globalz; 
 
-	
+
 	// std::cout << "-------------" << std::endl;
 	// std::cout << "desired force" << std::endl;
 	// std::cout << _posori_task->_desired_force << std::endl; 
@@ -124,7 +125,11 @@ void ScrewingAlignment::computeTorques(Eigen::VectorXd& torques)
 		the _posori_task->_desired_force splits the 5N desired normal force into components
 
 	*/
+	Eigen::VectorXd constant_forces; // constant downwards and sideways forces applied to ensure cap remains in contact with bottle
+	constant_forces.setZero(6);
 
+	constant_forces[1] = -25;
+	constant_forces[2] = -25; //??????????????????????????// also need to activate this only upon initial contact
 
 	_posori_task->_desired_position = _desired_position;
 	_posori_task->_desired_orientation = _desired_orientation;
@@ -134,6 +139,7 @@ void ScrewingAlignment::computeTorques(Eigen::VectorXd& torques)
 	Eigen::VectorXd posori_torques;
 	Eigen::VectorXd joint_torques;
 	Eigen::VectorXd gravity_torques;
+	Eigen::VectorXd constant_torques;	
 	posori_torques.setZero(_robot->_dof);
 	joint_torques.setZero(_robot->_dof);
 	gravity_torques.setZero(_robot->_dof);
@@ -146,8 +152,17 @@ void ScrewingAlignment::computeTorques(Eigen::VectorXd& torques)
 		_robot->gravityVector(gravity_torques);
 	}
 
-	torques = posori_torques + joint_torques + gravity_torques;
-	// torques = posori_torques + gravity_torques;
+	constant_torques = _posori_task->_projected_jacobian.transpose()*constant_forces;
+
+	if (countflag == true)
+	{
+		std::cout << "constant_torques" << std::endl;
+		std::cout << constant_torques << std::endl;
+	}
+
+
+	torques = posori_torques + joint_torques + gravity_torques + constant_torques;
+
 }
 
 void ScrewingAlignment::updateSensedForceAndMoment(const Eigen::Vector3d sensed_force_sensor_frame, 
@@ -182,4 +197,3 @@ void ScrewingAlignment::enableOrthogonalRotControl()
 }
 
 } /* namespace Sai2Primitives */
-
