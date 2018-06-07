@@ -83,7 +83,7 @@ int main (int argc, char** argv) {
 	// load simulation world
 	auto sim = new Simulation::Sai2Simulation(world_file, false);
 	sim->setCollisionRestitution(0);
-	sim->setCoeffFrictionStatic(0);
+	sim->setCoeffFrictionStatic(0.05);
 	sim->setCoeffFrictionDynamic(0);
 
 	// load robots
@@ -250,7 +250,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 	bool setup_flag = false;		// triggered when setup of position and orientation are complete
 
 	double theta_deg = 0;
-	#define APPROACH_ANGLE 	10.0	// angle to approach bottle
+	#define APPROACH_ANGLE 	15.0	// angle to approach bottle
 
 	while (fSimulationRunning) { //automatically set to false when simulation is quit
 		fTimerDidSleep = timer.waitForNextLoop();
@@ -300,7 +300,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 			// position part - would be replaced by point determined by robot vision
 			Eigen::Vector3d approach_point;
 			approach_point <<  0,
-							  -0.10,
+							  -0.11,
 							  -0.18;
 
 			motion_primitive->_desired_position = initial_position + approach_point;
@@ -314,15 +314,19 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 	// -----------------------------------------------------------------//	
 		else
 		{
-			Eigen::Vector3d cap_point;
-			cap_point <<  0,
-						 -0.10,
-						 -0.10;
-			screwing_primitive->_desired_position = initial_position + cap_point;
+			// Eigen::Vector3d cap_point;
+			// cap_point <<  0,
+			// 			 -0.10,
+			// 			 -0.10;
+			// screwing_primitive->_desired_position = initial_position + cap_point;
+
+
+			screwing_primitive->_desired_orientation = initial_orientation;
 
 			screwing_primitive->updateSensedForceAndMoment(- R_sensor.transpose() * sensed_force, - R_sensor.transpose() * sensed_moment);
 
-			screwing_primitive->computeTorques(screwing_primitive_torques);
+
+			screwing_primitive->computeTorques(screwing_primitive_torques, controller_counter % 500 == 0);
 			command_torques = screwing_primitive_torques;
 			sim->setJointTorques(robot_name, command_torques);
 
@@ -340,6 +344,8 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 				cout << sensed_force << endl; 
 				cout << "sensed_moment" << endl;
 				cout << sensed_moment << endl; 
+
+
 			}
 
 		}

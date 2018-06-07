@@ -147,17 +147,17 @@
             </geometry>
         </visual>
         <visual>
-            <origin xyz="0 0 0.36" rpy="0 0 0" />
+            <origin xyz="0 0 0.37" rpy="0 0 0" />
             <geometry>
 <!--                 <box size="0.08 0.08 0.08" /> -->
                 <!-- <cylinder radius="0.06" length="0.03"/> -->
-                <mesh filename="Cap_NoThreads.obj" scale="0.04 0.04 0.04" />
+                <mesh filename="Cap_NoThreads.obj" scale="0.041 0.041 0.041" />
             </geometry>
         </visual>
         <visual>
             <origin xyz="0 0 0.045" rpy="0 0 0" />
             <geometry>
-                <box size="0.15 0.02 0.01" />
+                <box size="0.15 0.02 0.005" />
                 <!-- <cylinder radius="0.08" length="0.01"/> -->
             </geometry>
             <material name="material_ee">
@@ -167,7 +167,7 @@
         <visual>
             <origin xyz="0 0 0.045" rpy="0 0 0" />
             <geometry>
-                <box size="0.02 0.15 0.01" />
+                <box size="0.02 0.15 0.005" />
                 <!-- <cylinder radius="0.08" length="0.01"/> -->
             </geometry>
             <material name="material_ee">
@@ -185,9 +185,9 @@
             <geometry>
                 <cylinder radius="0.06" length="0.03"/>
             </geometry> -->
-            <origin xyz="0 0 0.36" rpy="0 0 0" />
+            <origin xyz="0 0 0.37" rpy="0 0 0" />
             <geometry>
-                <mesh filename="Cap_NoThreads.obj" scale="0.04 0.04 0.04" />
+                <mesh filename="Cap_NoThreads.obj" scale="0.041 0.041 0.041" />
             </geometry>
         </collision>
     </link>

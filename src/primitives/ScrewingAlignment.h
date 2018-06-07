@@ -51,7 +51,7 @@ public:
 	 * 
 	 * @param torques   Vector that will be populated by the joint torques
 	 */
-	void computeTorques(Eigen::VectorXd& torques);
+	void computeTorques(Eigen::VectorXd& torques, bool countflag);
 
 	/**
 	 * @brief Updates the sensed force and moments from the force sensor. The quantities need to be expressed in sensor frame
