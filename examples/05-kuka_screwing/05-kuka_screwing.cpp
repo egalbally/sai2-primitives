@@ -330,12 +330,22 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 			command_torques = screwing_primitive_torques;
 			sim->setJointTorques(robot_name, command_torques);
 
-			// approach bottle
-			// make contact with bottle
-			// note the orientation of the normal force
-			// based on force orientation determine which direction to slide, until a clunk is felt
-			// once clunk is felt, then start screwing (backwards then forwards)
-				// SEE ELENA'S CODE FOR HOW TO SET UP THE STATE MACHINE????
+			// criteria for clunk: orientation is flat and moments are zero?
+
+
+			robot->rotation(current_orientation, motion_primitive->_link_name);
+
+			Eigen::Vector3d orientation_threshold;
+			orientation_threshold << 0.05,
+									 0.05,
+									 -0.999;
+
+			Eigen::Vector3d z_orientation = current_orientation.col(2);
+
+			if (z_orientation[0] < orientation_threshold[0] && z_orientation[1] < orientation_threshold[1] && z_orientation[2] < orientation_threshold[2]){
+				cout << "TARGET REACHED!" << endl;
+			}
+
 
 		if(controller_counter % 500 == 0)
 			{ 
@@ -344,7 +354,8 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 				cout << sensed_force << endl; 
 				cout << "sensed_moment" << endl;
 				cout << sensed_moment << endl; 
-
+				cout << "current_orientation" << endl;
+				cout << current_orientation << endl;
 
 			}
 
