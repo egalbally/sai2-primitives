@@ -40,18 +40,18 @@ ScrewingAlignment::ScrewingAlignment(Sai2Model::Sai2Model* robot,
 
 	_posori_task->setClosedLoopMomentControl();
 
-	_posori_task->_kp_moment = 30.0;  	// originally 1.0
-	_posori_task->_ki_moment = 0.5;	  	// originally 0.5
+	_posori_task->_kp_moment = 5.0;  	// originally 1.0
+	// _posori_task->_ki_moment = 0.5;	  	// originally 0.5
 	_posori_task->_kv_moment = 10.0;	// originally 10.0
 
-	_posori_task->_kp_force = 50.0; // added
+	_posori_task->_kp_force = 5.0; // added
 	_posori_task->_kv_force = 10.0;		
 
 	// _posori_task->_kp_pos = 100.0;  // added
 	// _posori_task->_kv_pos = 20.0;	// added
 
-	_posori_task->_kp_ori = 50.0; //modified, originally 50
-	_posori_task->_kv_ori = 14.0; //modified, originally 14
+	_posori_task->_kp_ori = 100.0; //modified, originally 50
+	_posori_task->_kv_ori = 1.0; //modified, originally 14
 
 	// _posori_task->_desired_moment = Eigen::Vector3d(0.0,0.0,0.0);
 
@@ -61,7 +61,7 @@ ScrewingAlignment::ScrewingAlignment(Sai2Model::Sai2Model* robot,
 	_desired_velocity = _posori_task->_desired_velocity;
 	_desired_angular_velocity = _posori_task->_desired_angular_velocity;
 
-	_desired_normal_force = 20; // MODIFIED - Need to determine optimal force though
+	_desired_normal_force = 50; // MODIFIED - Need to determine optimal force though
 
 	// TODO make a nullspace criteria to avoid singularities and one to avoid obstacles
 	// _joint_task->_desired_position = _robot->_q;
@@ -141,11 +141,11 @@ void ScrewingAlignment::computeTorques(Eigen::VectorXd& torques, bool countflag)
 
 	constant_torques = _posori_task->_projected_jacobian.transpose()*constant_forces;
 
-	if (countflag == true)
-	{
-		std::cout << "constant_torques" << std::endl;
-		std::cout << constant_torques << std::endl;
-	}
+	// if (countflag == true)
+	// {
+	// 	std::cout << "constant_torques" << std::endl;
+	// 	std::cout << constant_torques << std::endl;
+	// }
 
 
 	torques = posori_torques + joint_torques + gravity_torques + constant_torques;
