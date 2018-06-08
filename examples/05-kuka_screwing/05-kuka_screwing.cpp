@@ -93,7 +93,7 @@ enum ControllerStatus {
 
 ControllerStatus approach(Sai2Primitives::RedundantArmMotion*, Eigen::Matrix3d, Eigen::Vector3d, Eigen::VectorXd, Simulation::Sai2Simulation*);
 ControllerStatus alignment(Sai2Model::Sai2Model*, Sai2Primitives::RedundantArmMotion*, Sai2Primitives::ScrewingAlignment*, Eigen::Matrix3d, Eigen::VectorXd, Simulation::Sai2Simulation*, Eigen::Affine3d);
-ControllerStatus screwing(Sai2Primitives::ScrewingAlignment*, Eigen::VectorXd, Simulation::Sai2Simulation*);
+ControllerStatus screwing(Sai2Model::Sai2Model*, Sai2Primitives::RedundantArmMotion*, Sai2Primitives::ScrewingAlignment*, Eigen::Vector3d, Eigen::Matrix3d, Eigen::VectorXd, Simulation::Sai2Simulation*, Eigen::Affine3d);
 ControllerStatus done(Sai2Primitives::RedundantArmMotion*, Eigen::Vector3d, Eigen::VectorXd, Simulation::Sai2Simulation*);
 
 
@@ -102,6 +102,7 @@ ControllerState controller_state_;
 double theta_deg = 0;
 #define APPROACH_ANGLE 15.0
 unsigned long long controller_counter = 0;
+unsigned long long curr_control_time = 0;
 
 /* --------------------------------------------------------------------------------------
 Main Loop
@@ -274,6 +275,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 
 	Eigen::Matrix3d current_orientation;
 	Eigen::Vector3d current_position;	
+	Eigen::Vector3d current_pos1;	
 	Eigen::Matrix3d initial_orientation;
 	Eigen::Vector3d initial_position;
 	robot->rotation(initial_orientation, motion_primitive->_link_name);
@@ -320,29 +322,39 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 
 		switch (controller_state_){
 			case APPROACH:
-				cout << "APPROACH" << endl;
+				// cout << "APPROACH" << endl;
 				if (approach(motion_primitive, initial_orientation, initial_position, command_torques, sim) == FINISHED){
 					cout << "APPROACH FINISHED" << endl;
 					controller_state_= ALIGNMENT;
 				}		
 				break;
 			case ALIGNMENT:
-				cout << "ALIGNMENT" << endl;
+				// cout << "ALIGNMENT" << endl;
 				if (alignment(robot, motion_primitive, screwing_primitive, initial_orientation, command_torques, sim, sensor_frame_in_link) == FINISHED)
 				{
 					cout << "ALIGNMENT FINISHED" << endl;
-					controller_state_ = DONE; // switch this to SCREWING once set up
+					robot->position(current_position, motion_primitive->_link_name, motion_primitive->_control_frame.translation());
+					curr_control_time = 0;
+					controller_state_ = SCREWING;
 				}
 				break;
-			// case SCREWING:
-			// 	if (screwing(screwing_primitive, command_torques, sim) == FINISHED)
-			// 	{
-			// 		cout << "SCREWING FINISHED" << endl;
-			// 		controller_state_ = DONE;
-			// 	}
-			// 	break;
-			case DONE:
+			case SCREWING:
+				current_pos1 = current_position;
 				robot->position(current_position, motion_primitive->_link_name, motion_primitive->_control_frame.translation());
+
+				cout << controller_counter << endl;
+				cout << current_position << endl;
+
+				current_position = current_pos1;
+
+				if (screwing(robot, motion_primitive, screwing_primitive, current_position, initial_orientation, command_torques, sim, sensor_frame_in_link) == FINISHED)
+				{
+					cout << "SCREWING FINISHED" << endl;
+					robot->position(current_position, motion_primitive->_link_name, motion_primitive->_control_frame.translation());
+					controller_state_ = DONE;
+				}
+				break;
+			case DONE:
 				if (done(motion_primitive, current_position, command_torques, sim) == FINISHED){
 					break;
 				}
@@ -437,10 +449,9 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 
 		// 	}
 
-cout << controller_counter << endl;
-
 		// update counter and timer
 		controller_counter++;
+		curr_control_time++;
 		last_time = curr_time;
 	}
 
@@ -485,8 +496,7 @@ ControllerStatus approach(Sai2Primitives::RedundantArmMotion* motion_primitive, 
 	motion_primitive->computeTorques(command_torques);
 	sim->setJointTorques(robot_name, command_torques);
 
-	if (controller_counter >= 5000){
-		cout << "FINISHED-------------------------------------------" << endl;
+	if (controller_counter >= 2000){
 		return FINISHED;
 	}
 
@@ -515,14 +525,46 @@ ControllerStatus alignment(Sai2Model::Sai2Model* robot, Sai2Primitives::Redundan
 	Eigen::Vector3d z_orientation = current_orientation.col(2);
 
 	if (z_orientation[0] < orientation_threshold[0] && z_orientation[1] < orientation_threshold[1] && z_orientation[2] < orientation_threshold[2]){
-		cout << "TARGET REACHED!" << endl;
 		return FINISHED;
 	}
 
 	return RUNNING;
 }
 
-ControllerStatus screwing(Sai2Primitives::ScrewingAlignment* screwing_primitive, Eigen::VectorXd command_torques, Simulation::Sai2Simulation* sim){
+ControllerStatus screwing(Sai2Model::Sai2Model* robot, Sai2Primitives::RedundantArmMotion* motion_primitive, Sai2Primitives::ScrewingAlignment* screwing_primitive, Eigen::Vector3d current_position, Eigen::Matrix3d initial_orientation, Eigen::VectorXd command_torques, Simulation::Sai2Simulation* sim, Eigen::Affine3d sensor_frame_in_link){
+
+		#define MAX_ROTATION 	500 	// max rotation in degrees
+
+		Eigen::Matrix3d R;
+		Eigen::Vector3d T;
+		Eigen::Vector3d V;
+
+		double theta = -M_PI/2.0/1000.0 * (curr_control_time);
+		theta_deg = -theta*180/M_PI;
+
+		R << cos(theta) , -sin(theta), 0,
+	    	 sin(theta) , cos(theta) , 0,
+	        	  0     ,      0     , 1;
+
+		motion_primitive->_desired_orientation = R*initial_orientation;
+
+		motion_primitive->_desired_position = current_position;
+		motion_primitive->_desired_velocity = Eigen::Vector3d::Zero();
+		motion_primitive->computeTorques(command_torques);
+		sim->setJointTorques(robot_name, command_torques);
+
+
+		// screwing_primitive->_desired_orientation = R*initial_orientation;
+
+		// screwing_primitive->_desired_position = current_position;
+		// screwing_primitive->computeTorques(command_torques, controller_counter % 500 == 0);
+		// sim->setJointTorques(robot_name, command_torques);
+		// cout << theta_deg << endl;
+
+		if (theta_deg >= MAX_ROTATION){
+			return FINISHED;
+		}
+
 
 	return RUNNING;
 }
