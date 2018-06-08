@@ -40,12 +40,12 @@ ScrewingAlignment::ScrewingAlignment(Sai2Model::Sai2Model* robot,
 
 	_posori_task->setClosedLoopMomentControl();
 
-	_posori_task->_kp_moment = 50.0;  	// originally 1.0
-	// _posori_task->_ki_moment = 0.5;	  	// originally 0.5
-	_posori_task->_kv_moment = 0.1;	// originally 10.0
+	_posori_task->_kp_moment = 30.0;  	// originally 1.0
+	_posori_task->_ki_moment = 0.5;	  	// originally 0.5
+	_posori_task->_kv_moment = 10.0;	// originally 10.0
 
-	_posori_task->_kp_force = 100.0; // added
-	_posori_task->_kv_force = 0.1;		
+	_posori_task->_kp_force = 50.0; // added
+	_posori_task->_kv_force = 10.0;		
 
 	// _posori_task->_kp_pos = 100.0;  // added
 	// _posori_task->_kv_pos = 20.0;	// added
@@ -61,7 +61,7 @@ ScrewingAlignment::ScrewingAlignment(Sai2Model::Sai2Model* robot,
 	_desired_velocity = _posori_task->_desired_velocity;
 	_desired_angular_velocity = _posori_task->_desired_angular_velocity;
 
-	_desired_normal_force = 50; // MODIFIED - Need to determine optimal force though
+	_desired_normal_force = 20; // MODIFIED - Need to determine optimal force though
 
 	// TODO make a nullspace criteria to avoid singularities and one to avoid obstacles
 	// _joint_task->_desired_position = _robot->_q;
@@ -112,24 +112,11 @@ void ScrewingAlignment::computeTorques(Eigen::VectorXd& torques, bool countflag)
 
 	_posori_task->_desired_moment = 0 * globalz; 
 
-
-	// std::cout << "-------------" << std::endl;
-	// std::cout << "desired force" << std::endl;
-	// std::cout << _posori_task->_desired_force << std::endl; 
-	// std::cout << "desired moment" << std::endl;
-	// std::cout <<  << std::endl;
-
-
-
-	/* localz shows the components of the ee position that are in the operational space z direction (does the operational space z direction shift with orientation of the plate in the surface alignment example????)
-		the _posori_task->_desired_force splits the 5N desired normal force into components
-
-	*/
 	Eigen::VectorXd constant_forces; // constant downwards and sideways forces applied to ensure cap remains in contact with bottle
 	constant_forces.setZero(6);
 
 	constant_forces[1] = -25;
-	constant_forces[2] = -25; //??????????????????????????// also need to activate this only upon initial contact
+	constant_forces[2] = -25; 
 
 	_posori_task->_desired_position = _desired_position;
 	_posori_task->_desired_orientation = _desired_orientation;
@@ -162,6 +149,7 @@ void ScrewingAlignment::computeTorques(Eigen::VectorXd& torques, bool countflag)
 
 
 	torques = posori_torques + joint_torques + gravity_torques + constant_torques;
+	// torques = posori_torques + joint_torques + gravity_torques;
 
 }
 
