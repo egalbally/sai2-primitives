@@ -24,6 +24,7 @@ Include Required Libraries and Files
 
 #include <GLFW/glfw3.h> //must be loaded after loading opengl/glew as part of Sai2Graphics
 #include <signal.h>
+#include <stdlib.h> //includes capability for exit
 
 /* --------------------------------------------------------------------------------------
 Simulation Setup and Constants
@@ -73,6 +74,7 @@ bool fTransZp = false;
 bool fTransZn = false;
 bool fRotPanTilt = false;
 
+
 /* --------------------------------------------------------------------------------------
 State Machine Setup
 -----------------------------------------------------------------------------------------*/
@@ -95,14 +97,16 @@ ControllerStatus approach(Sai2Primitives::RedundantArmMotion*, Eigen::Matrix3d, 
 ControllerStatus alignment(Sai2Model::Sai2Model*, Sai2Primitives::RedundantArmMotion*, Sai2Primitives::ScrewingAlignment*, Eigen::Matrix3d, Eigen::VectorXd, Simulation::Sai2Simulation*, Eigen::Affine3d);
 ControllerStatus screwing(Sai2Model::Sai2Model*, Sai2Primitives::RedundantArmMotion*, Sai2Primitives::ScrewingAlignment*, Eigen::Vector3d, Eigen::Matrix3d, Eigen::VectorXd, Simulation::Sai2Simulation*, Eigen::Affine3d);
 ControllerStatus done(Sai2Primitives::RedundantArmMotion*, Eigen::Vector3d, Eigen::VectorXd, Simulation::Sai2Simulation*);
-
-
 ControllerState controller_state_;
 
 double theta_deg = 0;
-#define APPROACH_ANGLE 15.0
 unsigned long long controller_counter = 0;
 unsigned long long curr_control_time = 0;
+bool force_flag = false;		// robot has not yet encountered a z force greater than threshold
+
+#define APPROACH_ANGLE 	15.0	// Angle about X with which to approach bottle
+#define FORCE_THRESH	1 		// threshold force to establish whether contact has been made with bottle
+#define MAX_ROTATION 	360 	// max rotation in degrees
 
 /* --------------------------------------------------------------------------------------
 Main Loop
@@ -291,9 +295,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 
 
 	unsigned long long screw_counter = 0;
-	bool force_flag = false;		// robot has not yet encountered a z force greater than threshold
 	bool setup_flag = false;		// triggered when setup of position and orientation are complete
-
 	double theta_deg = 0;
 
 	while (fSimulationRunning) { //automatically set to false when simulation is quit
@@ -324,7 +326,9 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 			case APPROACH:
 				// cout << "APPROACH" << endl;
 				if (approach(motion_primitive, initial_orientation, initial_position, command_torques, sim) == FINISHED){
+					cout << endl;
 					cout << "APPROACH FINISHED" << endl;
+					cout << "..." << endl;
 					controller_state_= ALIGNMENT;
 				}		
 				break;
@@ -333,6 +337,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 				if (alignment(robot, motion_primitive, screwing_primitive, initial_orientation, command_torques, sim, sensor_frame_in_link) == FINISHED)
 				{
 					cout << "ALIGNMENT FINISHED" << endl;
+					cout << "..." << endl;
 					robot->position(current_position, motion_primitive->_link_name, motion_primitive->_control_frame.translation());
 					curr_control_time = 0;
 					controller_state_ = SCREWING;
@@ -341,15 +346,12 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 			case SCREWING:
 				current_pos1 = current_position;
 				robot->position(current_position, motion_primitive->_link_name, motion_primitive->_control_frame.translation());
-
-				cout << controller_counter << endl;
-				cout << current_position << endl;
-
 				current_position = current_pos1;
 
 				if (screwing(robot, motion_primitive, screwing_primitive, current_position, initial_orientation, command_torques, sim, sensor_frame_in_link) == FINISHED)
 				{
 					cout << "SCREWING FINISHED" << endl;
+					cout << "..." << endl;
 					robot->position(current_position, motion_primitive->_link_name, motion_primitive->_control_frame.translation());
 					controller_state_ = DONE;
 				}
@@ -369,85 +371,6 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		}
 
 
-
-
-	// ------------------ APPROACH -----------------//
-		// initial approach setup using motion primitive, assuming small approach angle and position inaccuracies based on robot vision
-		
-		// if(controller_counter < 3000)
-		// {
-		// 	// orientation part
-		// 	if(theta_deg <= APPROACH_ANGLE)
-		// 	{
-		// 		Eigen::Matrix3d R;
-		// 		double theta = -M_PI/2.0/500.0 * (controller_counter);
-		// 		theta_deg = -theta*180/M_PI;
-		// 		R <<      1     ,      0      ,      0     ,
-		// 	   		      0     ,  cos(theta) , -sin(theta),
-		// 	       		  0     ,  sin(theta) ,  cos(theta);
-
-		// 		motion_primitive->_desired_orientation = R*initial_orientation;
-		// 		cout << "......." << endl;
-		// 		cout << theta << endl;
-		// 		cout << endl;
-		// 		cout << theta_deg << endl;
-		// 	}
-
-		// 	// position part - would be replaced by point determined by robot vision
-		// 	Eigen::Vector3d approach_point;
-		// 	approach_point <<  0,
-		// 					  -0.11,
-		// 					  -0.18;
-
-		// 	motion_primitive->_desired_position = initial_position + approach_point;
-
-		// 	// torques
-		// 	motion_primitive->computeTorques(motion_primitive_torques);
-		// 	command_torques = motion_primitive_torques;
-		// 	sim->setJointTorques(robot_name, command_torques);
-		// }
-		
-	// -----------------------------------------------------------------//	
-		// else
-		// {
-
-			// screwing_primitive->_desired_orientation = initial_orientation;
-
-			// screwing_primitive->updateSensedForceAndMoment(- R_sensor.transpose() * sensed_force, - R_sensor.transpose() * sensed_moment);
-
-
-			// screwing_primitive->computeTorques(screwing_primitive_torques, controller_counter % 500 == 0);
-			// command_torques = screwing_primitive_torques;
-			// sim->setJointTorques(robot_name, command_torques);
-
-			// // criteria for clunk: orientation is flat and moments are zero?
-
-
-			// robot->rotation(current_orientation, motion_primitive->_link_name);
-
-			// Eigen::Vector3d orientation_threshold;
-			// orientation_threshold << 0.05,
-			// 						 0.05,
-			// 						 -0.999;
-
-			// Eigen::Vector3d z_orientation = current_orientation.col(2);
-
-			// if (z_orientation[0] < orientation_threshold[0] && z_orientation[1] < orientation_threshold[1] && z_orientation[2] < orientation_threshold[2]){
-			// 	cout << "TARGET REACHED!" << endl;
-			// }
-
-
-		// if(controller_counter % 500 == 0)
-		// 	{ 
-		// 		cout << "-------------" << endl;
-		// 		cout << "sensed_force" << endl;
-		// 		cout << sensed_force << endl; 
-		// 		cout << "sensed_moment" << endl;
-		// 		cout << sensed_moment << endl; 
-		// 		cout << "current_orientation" << endl;
-		// 		cout << current_orientation << endl;
-
-		// 	}
 
 		// update counter and timer
 		controller_counter++;
@@ -475,18 +398,18 @@ ControllerStatus approach(Sai2Primitives::RedundantArmMotion* motion_primitive, 
 	       		  0     ,  sin(theta) ,  cos(theta);
 
 		motion_primitive->_desired_orientation = R*initial_orientation;
-		cout << "......." << endl;
-		cout << APPROACH_ANGLE << endl;
-		cout << theta << endl;
-		cout << endl;
-		cout << "theta_deg" << endl;
-		cout << theta_deg << endl;
+		// cout << "......." << endl;
+		// cout << APPROACH_ANGLE << endl;
+		// cout << theta << endl;
+		// cout << endl;
+		// cout << "theta_deg" << endl;
+		// cout << theta_deg << endl;
 	}
 
 	// position part - would be replaced by point determined by robot vision
 	Eigen::Vector3d approach_point;
 	approach_point <<  -0.1,
-					  -0.18,
+					  -0.19,
 					  -0.24;
 
 	motion_primitive->_desired_position = initial_position + approach_point;
@@ -496,7 +419,7 @@ ControllerStatus approach(Sai2Primitives::RedundantArmMotion* motion_primitive, 
 	motion_primitive->computeTorques(command_torques);
 	sim->setJointTorques(robot_name, command_torques);
 
-	if (controller_counter >= 2000){
+	if (controller_counter >= 1500){
 		return FINISHED;
 	}
 
@@ -510,6 +433,23 @@ ControllerStatus alignment(Sai2Model::Sai2Model* robot, Sai2Primitives::Redundan
 	robot->rotation(R_link, link_name);
 	Eigen::Matrix3d R_sensor = R_link*sensor_frame_in_link.rotation();
 	screwing_primitive->updateSensedForceAndMoment(- R_sensor.transpose() * sensed_force, - R_sensor.transpose() * sensed_moment);
+
+	if(sensed_force[2] > FORCE_THRESH && force_flag == false)
+	{
+		force_flag = true;
+		cout << endl;
+		cout << "Robot has reached the bottle" << endl;
+		cout << endl;
+	}
+
+	if (force_flag == true){
+		screwing_primitive->_desired_normal_force = 20;
+
+	}
+	else{
+		screwing_primitive->_desired_normal_force = 0;
+		// screwing_primitive->_desired_velocity = Eigen::Vector3d(0.0, 0.0, -0.2);
+	}
 
 	screwing_primitive->computeTorques(command_torques, controller_counter % 500 == 0);
 	sim->setJointTorques(robot_name, command_torques);
@@ -533,32 +473,35 @@ ControllerStatus alignment(Sai2Model::Sai2Model* robot, Sai2Primitives::Redundan
 
 ControllerStatus screwing(Sai2Model::Sai2Model* robot, Sai2Primitives::RedundantArmMotion* motion_primitive, Sai2Primitives::ScrewingAlignment* screwing_primitive, Eigen::Vector3d current_position, Eigen::Matrix3d initial_orientation, Eigen::VectorXd command_torques, Simulation::Sai2Simulation* sim, Eigen::Affine3d sensor_frame_in_link){
 
-		#define MAX_ROTATION 	500 	// max rotation in degrees
+
 
 		Eigen::Matrix3d R;
 		Eigen::Vector3d T;
 		Eigen::Vector3d V;
 
-		double theta = -M_PI/2.0/1000.0 * (curr_control_time);
-		theta_deg = -theta*180/M_PI;
+		if (curr_control_time >= 2000)
+		{
+			double theta = -M_PI/2.0/2500.0 * (curr_control_time - 2500);
+			theta_deg = -theta*180/M_PI;
 
-		R << cos(theta) , -sin(theta), 0,
-	    	 sin(theta) , cos(theta) , 0,
-	        	  0     ,      0     , 1;
+			R << cos(theta) , -sin(theta), 0,
+		    	 sin(theta) , cos(theta) , 0,
+		        	  0     ,      0     , 1;
 
-		motion_primitive->_desired_orientation = R*initial_orientation;
+			motion_primitive->_desired_orientation = R*initial_orientation;
+		}
+		else
+		{
+			motion_primitive->_desired_orientation = initial_orientation;				
+		}
+
+		motion_primitive->_desired_angular_velocity = Eigen::Vector3d(0.0, 0.0, 0.0);
 
 		motion_primitive->_desired_position = current_position;
 		motion_primitive->_desired_velocity = Eigen::Vector3d::Zero();
 		motion_primitive->computeTorques(command_torques);
 		sim->setJointTorques(robot_name, command_torques);
 
-
-		// screwing_primitive->_desired_orientation = R*initial_orientation;
-
-		// screwing_primitive->_desired_position = current_position;
-		// screwing_primitive->computeTorques(command_torques, controller_counter % 500 == 0);
-		// sim->setJointTorques(robot_name, command_torques);
 		// cout << theta_deg << endl;
 
 		if (theta_deg >= MAX_ROTATION){
@@ -573,15 +516,14 @@ ControllerStatus done(Sai2Primitives::RedundantArmMotion* motion_primitive, Eige
 	motion_primitive->_desired_position = current_position;
 	motion_primitive->computeTorques(command_torques);
 	sim->setJointTorques(robot_name, command_torques);
-	return RUNNING;
+	cout << endl;
+	cout << "DONE" << endl;
+	cout << "----------------" << endl;
+	sleep(1);
+	// exit(EXIT_FAILURE);
+	fSimulationRunning = false;
+	return FINISHED;
 }
-
-
-
-
-
-
-
 
 
 
@@ -663,8 +605,8 @@ GLFWwindow* glfwInitialize() {
     // information about computer screen and GLUT display window
 	int screenW = mode->width;
     int screenH = mode->height;
-    int windowW = 0.8 * screenH;
-    int windowH = 0.5 * screenH;
+    int windowW = 0.9 * screenH;
+    int windowH = 0.9 * screenH;
     int windowPosY = (screenH - windowH) / 2;
     int windowPosX = windowPosY;
 
@@ -749,6 +691,89 @@ void mouseClick(GLFWwindow* window, int button, int action, int mods) {
 }
 
 
+
+
+
+
+
+
+	// ------------------ APPROACH -----------------//
+		// initial approach setup using motion primitive, assuming small approach angle and position inaccuracies based on robot vision
+		
+		// if(controller_counter < 3000)
+		// {
+		// 	// orientation part
+		// 	if(theta_deg <= APPROACH_ANGLE)
+		// 	{
+		// 		Eigen::Matrix3d R;
+		// 		double theta = -M_PI/2.0/500.0 * (controller_counter);
+		// 		theta_deg = -theta*180/M_PI;
+		// 		R <<      1     ,      0      ,      0     ,
+		// 	   		      0     ,  cos(theta) , -sin(theta),
+		// 	       		  0     ,  sin(theta) ,  cos(theta);
+
+		// 		motion_primitive->_desired_orientation = R*initial_orientation;
+		// 		cout << "......." << endl;
+		// 		cout << theta << endl;
+		// 		cout << endl;
+		// 		cout << theta_deg << endl;
+		// 	}
+
+		// 	// position part - would be replaced by point determined by robot vision
+		// 	Eigen::Vector3d approach_point;
+		// 	approach_point <<  0,
+		// 					  -0.11,
+		// 					  -0.18;
+
+		// 	motion_primitive->_desired_position = initial_position + approach_point;
+
+		// 	// torques
+		// 	motion_primitive->computeTorques(motion_primitive_torques);
+		// 	command_torques = motion_primitive_torques;
+		// 	sim->setJointTorques(robot_name, command_torques);
+		// }
+		
+	// -----------------------------------------------------------------//	
+		// else
+		// {
+
+			// screwing_primitive->_desired_orientation = initial_orientation;
+
+			// screwing_primitive->updateSensedForceAndMoment(- R_sensor.transpose() * sensed_force, - R_sensor.transpose() * sensed_moment);
+
+
+			// screwing_primitive->computeTorques(screwing_primitive_torques, controller_counter % 500 == 0);
+			// command_torques = screwing_primitive_torques;
+			// sim->setJointTorques(robot_name, command_torques);
+
+			// // criteria for clunk: orientation is flat and moments are zero?
+
+
+			// robot->rotation(current_orientation, motion_primitive->_link_name);
+
+			// Eigen::Vector3d orientation_threshold;
+			// orientation_threshold << 0.05,
+			// 						 0.05,
+			// 						 -0.999;
+
+			// Eigen::Vector3d z_orientation = current_orientation.col(2);
+
+			// if (z_orientation[0] < orientation_threshold[0] && z_orientation[1] < orientation_threshold[1] && z_orientation[2] < orientation_threshold[2]){
+			// 	cout << "TARGET REACHED!" << endl;
+			// }
+
+
+		// if(controller_counter % 500 == 0)
+		// 	{ 
+		// 		cout << "-------------" << endl;
+		// 		cout << "sensed_force" << endl;
+		// 		cout << sensed_force << endl; 
+		// 		cout << "sensed_moment" << endl;
+		// 		cout << sensed_moment << endl; 
+		// 		cout << "current_orientation" << endl;
+		// 		cout << current_orientation << endl;
+
+		// 	}
 
 
 

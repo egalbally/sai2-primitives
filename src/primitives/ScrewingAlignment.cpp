@@ -42,26 +42,26 @@ ScrewingAlignment::ScrewingAlignment(Sai2Model::Sai2Model* robot,
 
 	_posori_task->_kp_moment = 5.0;  	// originally 1.0
 	// _posori_task->_ki_moment = 0.5;	  	// originally 0.5
-	_posori_task->_kv_moment = 10.0;	// originally 10.0
+	_posori_task->_kv_moment = 20.0;	// originally 10.0
 
 	_posori_task->_kp_force = 5.0; // added
-	_posori_task->_kv_force = 10.0;		
+	_posori_task->_kv_force = 20.0;		
 
-	// _posori_task->_kp_pos = 100.0;  // added
-	// _posori_task->_kv_pos = 20.0;	// added
+	_posori_task->_kp_ori = 20.0; //modified, originally 50
+	_posori_task->_kv_ori = 20.0; //modified, originally 14
 
-	_posori_task->_kp_ori = 100.0; //modified, originally 50
-	_posori_task->_kv_ori = 1.0; //modified, originally 14
+	// _posori_task->_kp_pos = 10.0; //modified, originally 50
+	// _posori_task->_kv_pos = 14.0; //modified, originally 14	
 
 	// _posori_task->_desired_moment = Eigen::Vector3d(0.0,0.0,0.0);
 
 	_desired_position = _posori_task->_desired_position;
 	// _desired_orientation = _posori_task->_desired_orientation;
 
-	_desired_velocity = _posori_task->_desired_velocity;
+	// _desired_velocity = _posori_task->_desired_velocity;
 	_desired_angular_velocity = _posori_task->_desired_angular_velocity;
 
-	_desired_normal_force = 50; // MODIFIED - Need to determine optimal force though
+	// _desired_normal_force = 50; // MODIFIED - Need to determine optimal force though
 
 	// TODO make a nullspace criteria to avoid singularities and one to avoid obstacles
 	// _joint_task->_desired_position = _robot->_q;
@@ -115,8 +115,14 @@ void ScrewingAlignment::computeTorques(Eigen::VectorXd& torques, bool countflag)
 	Eigen::VectorXd constant_forces; // constant downwards and sideways forces applied to ensure cap remains in contact with bottle
 	constant_forces.setZero(6);
 
-	constant_forces[1] = -25;
-	constant_forces[2] = -25; 
+	if (_desired_normal_force == 0){	// ideally this would be switched to a constant velocity before contact is made with bottle
+		constant_forces[1] = -0.5;
+		constant_forces[2] = -1; 
+	} else {			
+		constant_forces[1] = -15;
+		constant_forces[2] = -15; 
+	}
+
 
 	_posori_task->_desired_position = _desired_position;
 	_posori_task->_desired_orientation = _desired_orientation;
