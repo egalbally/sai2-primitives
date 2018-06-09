@@ -1,10 +1,17 @@
-/*
+/*======================================================================================
+ * 05-kuka_screwing.cpp
+ *
  * Example of a controller for a Kuka arm made with the screwing alignment primitive
+ * ScrewingAlignment controller is used to align a bottle cap with a bottle before using
+ * the RedundantArmMotion primitive to perform the screwing action.
+ *
  * Daniela Deschamps, Spring 2018
- */
+ *
+ *======================================================================================*/
+
 
 /* --------------------------------------------------------------------------------------
-Include Required Libraries and Files
+   Include Required Libraries and Files
 -----------------------------------------------------------------------------------------*/
 #include <iostream>
 #include <string>
@@ -27,8 +34,8 @@ Include Required Libraries and Files
 #include <stdlib.h> //includes capability for exit
 
 /* --------------------------------------------------------------------------------------
-Simulation Setup and Constants
------------------------------------------------------------------------------------------*/
+	Simulation and Control Loop Setup
+-------------------------------------------------------------------------------------*/
 
 bool fSimulationRunning = false;
 void sighandler(int){fSimulationRunning = false;}
@@ -76,7 +83,7 @@ bool fRotPanTilt = false;
 
 
 /* --------------------------------------------------------------------------------------
-State Machine Setup
+   State Machine Setup
 -----------------------------------------------------------------------------------------*/
 
 enum ControllerState {
@@ -103,14 +110,17 @@ double theta_deg = 0;
 unsigned long long controller_counter = 0;
 unsigned long long curr_control_time = 0;
 bool force_flag = false;		// robot has not yet encountered a z force greater than threshold
+Eigen::Matrix3d target_orientation;
 
 #define APPROACH_ANGLE 	15.0	// Angle about X with which to approach bottle
 #define FORCE_THRESH	1 		// threshold force to establish whether contact has been made with bottle
 #define MAX_ROTATION 	360 	// max rotation in degrees
+// ---------------------------------------------------------------------------------------
 
-/* --------------------------------------------------------------------------------------
-Main Loop
------------------------------------------------------------------------------------------*/
+
+/* =======================================================================================
+   MAIN LOOP
+========================================================================================== */
 
 int main (int argc, char** argv) {
 	cout << "Loading URDF world model file: " << world_file << endl;
@@ -128,7 +138,7 @@ int main (int argc, char** argv) {
 	// load simulation world
 	auto sim = new Simulation::Sai2Simulation(world_file, false);
 	sim->setCollisionRestitution(0);
-	sim->setCoeffFrictionStatic(0.05);
+	sim->setCoeffFrictionStatic(0.05); //might need to increase friction when screws are added?
 	sim->setCoeffFrictionDynamic(0);
 
 	// load robots
@@ -253,9 +263,10 @@ int main (int argc, char** argv) {
 	return 0;
 }
 
-/* --------------------------------------------------------------------------------------
-Control Loop
------------------------------------------------------------------------------------------*/
+
+/* =======================================================================================
+   CONTROL LOOP
+========================================================================================== */
 void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 	
 	robot->updateModel();
@@ -328,7 +339,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 				if (approach(motion_primitive, initial_orientation, initial_position, command_torques, sim) == FINISHED){
 					cout << endl;
 					cout << "APPROACH FINISHED" << endl;
-					cout << "..." << endl;
+					cout << "---" << endl;
 					controller_state_= ALIGNMENT;
 				}		
 				break;
@@ -337,7 +348,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 				if (alignment(robot, motion_primitive, screwing_primitive, initial_orientation, command_torques, sim, sensor_frame_in_link) == FINISHED)
 				{
 					cout << "ALIGNMENT FINISHED" << endl;
-					cout << "..." << endl;
+					cout << "---" << endl;
 					robot->position(current_position, motion_primitive->_link_name, motion_primitive->_control_frame.translation());
 					curr_control_time = 0;
 					controller_state_ = SCREWING;
@@ -351,7 +362,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 				if (screwing(robot, motion_primitive, screwing_primitive, current_position, initial_orientation, command_torques, sim, sensor_frame_in_link) == FINISHED)
 				{
 					cout << "SCREWING FINISHED" << endl;
-					cout << "..." << endl;
+					cout << "---" << endl;
 					robot->position(current_position, motion_primitive->_link_name, motion_primitive->_control_frame.translation());
 					controller_state_ = DONE;
 				}
@@ -370,8 +381,6 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 				break;
 		}
 
-
-
 		// update counter and timer
 		controller_counter++;
 		curr_control_time++;
@@ -386,6 +395,28 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 
 }
 
+
+/* =======================================================================================
+   STATE MACHINE CASES
+   -----------------------
+   * Approach: 	Brings end-effector to a point close to the bottle at a pre-set approach
+   				angle. The point is hard-coded for simulation, but should be determined by
+   				robot vision in real life.
+   				  -> RedundantArmMotion.cpp
+
+   * Alignment:	Brings cap in contact with bottle, and uses force and moment control to
+   				align it over the lip of the bottle.
+   				  -> ScrewingAlignment.cpp
+
+   * Screwing:  Rotates the cap on the bottle until a target orientation is reached. The
+   				target orientation criteria should be replaced by a force criteria once
+   				threads are added.
+   				  -> RedundantArmMotion.cpp
+
+   * Done:		Stops robot motion by having it maintain its current position.
+   				  -> RedundantArmMotion.cpp
+========================================================================================== */
+
 ControllerStatus approach(Sai2Primitives::RedundantArmMotion* motion_primitive, Eigen::Matrix3d initial_orientation, Eigen::Vector3d initial_position, Eigen::VectorXd command_torques, Simulation::Sai2Simulation* sim) {
 	// orientation part
 	if(theta_deg <= APPROACH_ANGLE)
@@ -398,12 +429,6 @@ ControllerStatus approach(Sai2Primitives::RedundantArmMotion* motion_primitive, 
 	       		  0     ,  sin(theta) ,  cos(theta);
 
 		motion_primitive->_desired_orientation = R*initial_orientation;
-		// cout << "......." << endl;
-		// cout << APPROACH_ANGLE << endl;
-		// cout << theta << endl;
-		// cout << endl;
-		// cout << "theta_deg" << endl;
-		// cout << theta_deg << endl;
 	}
 
 	// position part - would be replaced by point determined by robot vision
@@ -420,6 +445,7 @@ ControllerStatus approach(Sai2Primitives::RedundantArmMotion* motion_primitive, 
 	sim->setJointTorques(robot_name, command_torques);
 
 	if (controller_counter >= 1500){
+		theta_deg = 0;
 		return FINISHED;
 	}
 
@@ -473,41 +499,38 @@ ControllerStatus alignment(Sai2Model::Sai2Model* robot, Sai2Primitives::Redundan
 
 ControllerStatus screwing(Sai2Model::Sai2Model* robot, Sai2Primitives::RedundantArmMotion* motion_primitive, Sai2Primitives::ScrewingAlignment* screwing_primitive, Eigen::Vector3d current_position, Eigen::Matrix3d initial_orientation, Eigen::VectorXd command_torques, Simulation::Sai2Simulation* sim, Eigen::Affine3d sensor_frame_in_link){
 
-
-
 		Eigen::Matrix3d R;
 		Eigen::Vector3d T;
 		Eigen::Vector3d V;
+		double theta;
 
-		if (curr_control_time >= 2000)
+		if (curr_control_time < 2500){
+			motion_primitive->_desired_orientation = initial_orientation;
+		}
+		else if (theta_deg < MAX_ROTATION)
 		{
-			double theta = -M_PI/2.0/2500.0 * (curr_control_time - 2500);
+			theta = -M_PI/2.0/2500.0 * (curr_control_time - 2500);
 			theta_deg = -theta*180/M_PI;
-
 			R << cos(theta) , -sin(theta), 0,
 		    	 sin(theta) , cos(theta) , 0,
 		        	  0     ,      0     , 1;
 
 			motion_primitive->_desired_orientation = R*initial_orientation;
+			target_orientation = R*initial_orientation;
+		}
+		else if (curr_control_time < 16000) //extra buffer time to allow slow simulation to reach target orientation
+		{
+			motion_primitive->_desired_orientation = target_orientation;				
 		}
 		else
 		{
-			motion_primitive->_desired_orientation = initial_orientation;				
+			return FINISHED;
 		}
-
-		motion_primitive->_desired_angular_velocity = Eigen::Vector3d(0.0, 0.0, 0.0);
 
 		motion_primitive->_desired_position = current_position;
 		motion_primitive->_desired_velocity = Eigen::Vector3d::Zero();
 		motion_primitive->computeTorques(command_torques);
 		sim->setJointTorques(robot_name, command_torques);
-
-		// cout << theta_deg << endl;
-
-		if (theta_deg >= MAX_ROTATION){
-			return FINISHED;
-		}
-
 
 	return RUNNING;
 }
@@ -517,8 +540,7 @@ ControllerStatus done(Sai2Primitives::RedundantArmMotion* motion_primitive, Eige
 	motion_primitive->computeTorques(command_torques);
 	sim->setJointTorques(robot_name, command_torques);
 	cout << endl;
-	cout << "DONE" << endl;
-	cout << "----------------" << endl;
+	cout << "------- DONE -------" << endl;
 	sleep(1);
 	// exit(EXIT_FAILURE);
 	fSimulationRunning = false;
@@ -527,13 +549,15 @@ ControllerStatus done(Sai2Primitives::RedundantArmMotion* motion_primitive, Eige
 
 
 
+/* =======================================================================================
+   SIMULATION SETUP
+   -----------------------
+   * Simulation loop
+   * Window initialization
+   * Window error
+   * Mouse click commands
+========================================================================================== */
 
-
-
-
-
-
-//------------------------------------------------------------------------------
 void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* bottle, ForceSensorSim* fsensor, Simulation::Sai2Simulation* sim) {
 	fSimulationRunning = true;
 
@@ -588,8 +612,6 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* bottle, Force
     std::cout << "Simulation Loop frequency : " << timer.elapsedCycles()/end_time << "Hz\n";
 }
 
-
-//------------------------------------------------------------------------------
 GLFWwindow* glfwInitialize() {
 		/*------- Set up visualization -------*/
     // set up error callback
@@ -605,14 +627,14 @@ GLFWwindow* glfwInitialize() {
     // information about computer screen and GLUT display window
 	int screenW = mode->width;
     int screenH = mode->height;
-    int windowW = 0.9 * screenH;
-    int windowH = 0.9 * screenH;
-    int windowPosY = (screenH - windowH) / 2;
+    int windowW = 1.0 * screenH;
+    int windowH = 0.7 * screenH;
+    int windowPosY = (screenH - windowH*2) / 2;
     int windowPosX = windowPosY;
 
     // create window and make it current
     glfwWindowHint(GLFW_VISIBLE, 0);
-    GLFWwindow* window = glfwCreateWindow(windowW, windowH, "SAI2.0 - CS327a HW2", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(windowW, windowH, "SAI2.0 - Bottle Cap Screwing Demo", NULL, NULL);
 	glfwSetWindowPos(window, windowPosX, windowPosY);
 	glfwShowWindow(window);
     glfwMakeContextCurrent(window);
@@ -621,14 +643,10 @@ GLFWwindow* glfwInitialize() {
 	return window;
 }
 
-//------------------------------------------------------------------------------
-
 void glfwError(int error, const char* description) {
 	cerr << "GLFW Error: " << description << endl;
 	exit(1);
 }
-
-//------------------------------------------------------------------------------
 
 void keySelect(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -661,8 +679,6 @@ void keySelect(GLFWwindow* window, int key, int scancode, int action, int mods)
     }
 }
 
-//------------------------------------------------------------------------------
-
 void mouseClick(GLFWwindow* window, int button, int action, int mods) {
 	bool set = (action != GLFW_RELEASE);
 	//TODO: mouse interaction with robot
@@ -694,8 +710,9 @@ void mouseClick(GLFWwindow* window, int button, int action, int mods) {
 
 
 
-
-
+/* =======================================================================================
+   EXTRA SCRAPS OF CODE - expand side bar to see it (should be deleted)
+========================================================================================== */
 
 	// ------------------ APPROACH -----------------//
 		// initial approach setup using motion primitive, assuming small approach angle and position inaccuracies based on robot vision
