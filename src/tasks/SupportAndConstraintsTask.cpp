@@ -76,6 +76,8 @@ SupportAndConstraintsTask::SupportAndConstraintsTask(Sai2Model::Sai2Model* robot
 	_N_prec.setIdentity(_robot->dof(), _robot->dof());
 	_N.setZero(_robot->dof(), _robot->dof());
 	_Projector.setZero(_robot->dof() - _n_support_dof , _robot->dof());
+	_Lambda_s = Eigen::MatrixXd::Zero(6 , 6);
+	_Jbar_s = Eigen::MatrixXd::Zero(_robot->dof() , 6);
 
 	_task_force.setZero(_n_ac_dof + _n_ic_dof);
 
@@ -158,6 +160,8 @@ SupportAndConstraintsTask::SupportAndConstraintsTask(Sai2Model::Sai2Model* robot
 	_N_prec.setIdentity(_robot->dof(), _robot->dof());
 	_N.setZero(_robot->dof(), _robot->dof());
 	_Projector.setZero(_robot->dof() - _n_support_dof , _robot->dof());
+	_Lambda_s = Eigen::MatrixXd::Zero(6 , 6);
+	_Jbar_s = Eigen::MatrixXd::Zero(_robot->dof() , 6);
 
 	_task_force.setZero(_n_ac_dof + _n_ic_dof);
 
@@ -264,12 +268,11 @@ void SupportAndConstraintsTask::updateTaskModel(const Eigen::MatrixXd N_prec)
 
 	_Js = (_G21.transpose() - _G11.transpose()*G13_inv.transpose()*_G23.transpose())*_J_pc;
 
-	// TODO : make member variables ?
-	Eigen::MatrixXd Lambda_s = Eigen::MatrixXd::Zero(6 , 6);
-	Eigen::MatrixXd Js_bar = Eigen::MatrixXd::Zero(_robot->dof() , 6);
+	_Lambda_s = Eigen::MatrixXd::Zero(6 , 6);
+	_Jbar_s = Eigen::MatrixXd::Zero(_robot->dof() , 6);
 	Eigen::MatrixXd Ns = Eigen::MatrixXd::Zero(_robot->dof() , _robot->dof());
 
-	_robot->operationalSpaceMatrices(Lambda_s,Js_bar,Ns,_Js);
+	_robot->operationalSpaceMatrices(_Lambda_s,_Jbar_s,Ns,_Js);
 	_N_prec = Ns;
 
 	Eigen::MatrixXd S = Eigen::MatrixXd::Zero(_robot->dof() - _n_support_dof , _robot->dof());
@@ -363,6 +366,7 @@ void SupportAndConstraintsTask::updateContactsModel()
 
 	updateTaskModel(Eigen::MatrixXd::Identity(_robot->dof() , _robot->dof()));
 }
+
 
 
 } /* namespace Sai2Primitives */

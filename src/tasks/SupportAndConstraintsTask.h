@@ -104,6 +104,8 @@ public:
 	Eigen::MatrixXd _J_contact;
 	Eigen::MatrixXd _J_ac, _J_pc;
 	Eigen::MatrixXd _Js, _Jf;
+	Eigen::MatrixXd _Lambda_s;
+	Eigen::MatrixXd _Jbar_s;
 	Eigen::MatrixXd _N;
 	Eigen::MatrixXd _Projector;
 
