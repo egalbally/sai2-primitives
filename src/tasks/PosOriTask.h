@@ -83,6 +83,12 @@ public:
 	 */
 	virtual void computeTorques(Eigen::VectorXd& task_joint_torques);
 
+	/**
+	 * @brief      reinitializes the desired state to the current robot
+	 *             configuration as well as the integrator terms
+	 */
+	void reInitializeTask();
+
 	void enableVelocitySaturation(const Eigen::Vector3d& linear_saturation_velocity, const Eigen::Vector3d& angular_saturation_velocity);
 	
 	void disableVelocitySaturation();
@@ -261,6 +267,7 @@ public:
 	// movement quantities
 	Eigen::Vector3d _current_position;      // robot frame
 	Eigen::Vector3d _desired_position;      // robot frame
+	Eigen::Vector3d _goal_position;      // robot frame
 	Eigen::Matrix3d _current_orientation;   // robot frame
 	Eigen::Matrix3d _desired_orientation;   // robot frame
 
@@ -311,6 +318,8 @@ public:
 	bool _velocity_saturation = false;
 	Eigen::Vector3d _linear_saturation_velocity;
 	Eigen::Vector3d _angular_saturation_velocity;
+
+	double _max_velocity;
 
 };
 

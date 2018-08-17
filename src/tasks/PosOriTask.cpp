@@ -32,6 +32,7 @@ PosOriTask::PosOriTask(Sai2Model::Sai2Model* robot, std::string link_name, Eigen
 	// motion
 	_robot->position(_current_position, _link_name, _control_frame.translation());
 	_robot->position(_desired_position, _link_name, _control_frame.translation());
+	_robot->position(_goal_position, _link_name, _control_frame.translation());
 	_robot->rotation(_current_orientation, _link_name);
 	_robot->rotation(_desired_orientation, _link_name);
 
@@ -41,6 +42,8 @@ PosOriTask::PosOriTask(Sai2Model::Sai2Model* robot, std::string link_name, Eigen
 	_desired_angular_velocity.setZero();
 	_linear_saturation_velocity.setZero();
 	_angular_saturation_velocity.setZero();
+
+	_max_velocity = 0;
 
 	_kp_pos = 50.0;
 	_kv_pos = 14.0;
@@ -171,6 +174,33 @@ void PosOriTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 	}
 
 	// linear motion related terms
+
+	// update desired position if in velocity saturation mode
+	if(_max_velocity > 0)
+	{
+		Eigen::Vector3d proxy_error = _goal_position - _desired_position;
+		if( proxy_error.norm() > _max_velocity*_t_diff.count() )
+		{
+			_desired_position += proxy_error/proxy_error.norm() * _max_velocity * _t_diff.count(); 
+		}
+		else
+		{
+			_desired_position = _goal_position;
+		}
+		if( proxy_error.norm() > 10 * _max_velocity*_t_diff.count() )
+		{
+			_desired_velocity = proxy_error/proxy_error.norm() * _max_velocity;
+		}
+		else
+		{
+			_desired_velocity.setZero();
+		}
+	}
+	else
+	{
+		_desired_position = _goal_position;
+	}
+	
 	// get curent position for P term
 	_robot->position(_current_position, _link_name, _control_frame.translation());
 
@@ -246,6 +276,48 @@ void PosOriTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 
 	// update previous time
 	_t_prev = _t_curr;
+}
+
+void PosOriTask::reInitializeTask()
+{
+	int dof = _robot->_dof;
+
+	// motion
+	_robot->position(_current_position, _link_name, _control_frame.translation());
+	_robot->position(_desired_position, _link_name, _control_frame.translation());
+	_robot->position(_goal_position, _link_name, _control_frame.translation());
+	_robot->rotation(_current_orientation, _link_name);
+	_robot->rotation(_desired_orientation, _link_name);
+
+	_current_velocity.setZero();
+	_desired_velocity.setZero();
+	_current_angular_velocity.setZero();
+	_desired_angular_velocity.setZero();
+	_linear_saturation_velocity.setZero();
+	_angular_saturation_velocity.setZero();
+
+	_orientation_error.setZero();
+	_integrated_position_error.setZero();
+	_integrated_orientation_error.setZero();
+
+	_sigma_position = Eigen::Matrix3d::Identity();
+	_sigma_orientation = Eigen::Matrix3d::Identity();
+
+	_desired_force.setZero();
+	_sensed_force.setZero();
+	_desired_moment.setZero();
+	_sensed_moment.setZero();
+
+	_integrated_force_error.setZero();
+	_integrated_moment_error.setZero();
+
+	_sigma_force.setZero();
+	_sigma_moment.setZero();
+
+	_closed_loop_force_control = false;
+	_closed_loop_moment_control = false;
+
+	_first_iteration = true;	
 }
 
 void PosOriTask::enableVelocitySaturation(const Eigen::Vector3d& linear_saturation_velocity, const Eigen::Vector3d& angular_saturation_velocity)

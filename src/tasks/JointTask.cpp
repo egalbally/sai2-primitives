@@ -21,9 +21,12 @@ JointTask::JointTask(Sai2Model::Sai2Model* robot)
 
 	_current_position = _robot->_q;
 	_desired_position = _robot->_q;
+	_goal_position = _robot->_q;
 
 	_current_velocity.setZero(dof);
 	_desired_velocity.setZero(dof);
+
+	double _max_velocity = 0;
 
 	_kp = 50.0;
 	_kv = 14.0;
@@ -69,6 +72,29 @@ void JointTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 	}
 	_t_diff = _t_curr - _t_prev;
 
+	// update desired position if in velocity saturation mode
+	if(_max_velocity > 0)
+	{
+		Eigen::VectorXd proxy_error = _goal_position - _desired_position;
+		if( proxy_error.norm() > _max_velocity*_t_diff.count() )
+		{
+			_desired_position += proxy_error/proxy_error.norm() * _max_velocity * _t_diff.count(); 
+		}
+		else
+		{
+			_desired_position = _goal_position;
+		}
+		if( proxy_error.norm() > 10 * _max_velocity*_t_diff.count() )
+		{
+			_desired_velocity = proxy_error/proxy_error.norm() * _max_velocity;
+		}
+		else
+		{
+			_desired_velocity.setZero(_robot->dof());
+		}
+
+	}
+
 	// get position of control frame
 	_current_position = _robot->_q;
 
@@ -87,6 +113,21 @@ void JointTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 
 	// update previous time
 	_t_prev = _t_curr;
+}
+
+void JointTask::reInitializeTask()
+{
+	int dof = _robot->_dof;
+
+	_current_position = _robot->_q;
+	_desired_position = _robot->_q;
+	_goal_position = _robot->_q;
+
+	_current_velocity.setZero(dof);
+	_desired_velocity.setZero(dof);
+
+	_integrated_position_error.setZero(dof);
+	_first_iteration = true;	
 }
 
 
