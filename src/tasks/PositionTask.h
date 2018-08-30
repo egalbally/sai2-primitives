@@ -79,6 +79,7 @@ public:
 
 	Eigen::Vector3d _current_position;
 	Eigen::Vector3d _desired_position;
+	Eigen::Vector3d _goal_position;         
 
 	Eigen::Vector3d _current_velocity;
 	Eigen::Vector3d _desired_velocity;
@@ -97,6 +98,8 @@ public:
 
 	bool _velocity_saturation = false;
 	Eigen::Vector3d _saturation_velocity;
+
+	double _max_velocity;
 
 };
 

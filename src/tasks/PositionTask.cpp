@@ -31,6 +31,9 @@ PositionTask::PositionTask(Sai2Model::Sai2Model* robot, std::string link_name, E
 
 	_robot->position(_current_position, _link_name, _control_frame.translation());
 	_robot->position(_desired_position, _link_name, _control_frame.translation());
+	_robot->position(_goal_position, _link_name, _control_frame.translation());
+
+	_max_velocity = 0.0;
 
 	_current_velocity.setZero();
 	_desired_velocity.setZero();
@@ -98,6 +101,32 @@ void PositionTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 
 	// update angular velocity for D term
 	_current_velocity = _projected_jacobian * _robot->_dq;
+
+	// update desired position if in velocity saturation mode
+	if(_max_velocity > 0)
+	{
+		Eigen::Vector3d proxy_error = _goal_position - _desired_position;
+		if( proxy_error.norm() > 0 && proxy_error.norm() > _max_velocity*_t_diff.count() )
+		{
+			_desired_position += proxy_error/proxy_error.norm() * _max_velocity * _t_diff.count(); 
+		}
+		else
+		{
+			_desired_position = _goal_position;
+		}
+		if( proxy_error.norm() > 0 && proxy_error.norm() > 10 * _max_velocity*_t_diff.count() )
+		{
+			_desired_velocity = proxy_error/proxy_error.norm() * _max_velocity;
+		}
+		else
+		{
+			_desired_velocity.setZero();
+		}
+	}
+	else
+	{
+		_desired_position = _goal_position;
+	}
 
 	// compute task force
 	if(_velocity_saturation)

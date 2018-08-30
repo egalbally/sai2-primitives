@@ -267,7 +267,7 @@ public:
 	// movement quantities
 	Eigen::Vector3d _current_position;      // robot frame
 	Eigen::Vector3d _desired_position;      // robot frame
-	Eigen::Vector3d _goal_position;      // robot frame
+	Eigen::Vector3d _goal_position;         // robot frame
 	Eigen::Matrix3d _current_orientation;   // robot frame
 	Eigen::Matrix3d _desired_orientation;   // robot frame
 
