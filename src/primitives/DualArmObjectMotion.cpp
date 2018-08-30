@@ -98,6 +98,13 @@ void DualArmObjectMotion::updatePrimitiveModel(const Eigen::MatrixXd N_prec)
 	_N = _posori_task_1->_N * _posori_task_2->_N;
 }
 
+void DualArmObjectMotion::updatePrimitiveModel()
+{
+	int dof = _robot->dof();
+	Eigen::MatrixXd N = Eigen::MatrixXd::Identity(dof,dof);
+	updatePrimitiveModel(N);
+}
+
 void DualArmObjectMotion::computeTorques(Eigen::VectorXd& torques)
 {
 	torques.setZero(_robot->_dof);

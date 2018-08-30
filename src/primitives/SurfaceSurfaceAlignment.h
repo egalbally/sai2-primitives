@@ -60,10 +60,16 @@ public:
 	~SurfaceSurfaceAlignment();
 
 	/**
-	 * @brief Updates the primitive model (dynamic quantities for op space and kinematics of the control frame position). 
+	 * @brief Updates the primitive model in the nummspace of the previous primitives (dynamic quantities for op space and kinematics of the control frame position). 
 	 * Call it after calling the dunction updateModel of the robot model
 	 */
 	virtual void updatePrimitiveModel(const Eigen::MatrixXd N_prec);
+
+	/**
+	 * @brief Updates the primitive model assuming it is the highest level (dynamic quantities for op space and kinematics of the control frame position). 
+	 * Call it after calling the dunction updateModel of the robot model
+	 */
+	virtual void updatePrimitiveModel();
 
 	/**
 	 * @brief Computes the joint torques associated with the primitive

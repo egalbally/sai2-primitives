@@ -68,6 +68,13 @@ void RedundantArmMotion::updatePrimitiveModel(const Eigen::MatrixXd N_prec)
 	}
 }
 
+void RedundantArmMotion::updatePrimitiveModel()
+{
+	int dof = _robot->dof();
+	Eigen::MatrixXd N = Eigen::MatrixXd::Identity(dof,dof);
+	updatePrimitiveModel(N);
+}
+
 void RedundantArmMotion::computeTorques(Eigen::VectorXd& torques)
 {
 	torques.setZero(_robot->_dof);

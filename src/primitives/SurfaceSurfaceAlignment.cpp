@@ -91,6 +91,13 @@ void SurfaceSurfaceAlignment::updatePrimitiveModel(const Eigen::MatrixXd N_prec)
 	_T_base_control = T_base_link * _control_frame;
 }
 
+void SurfaceSurfaceAlignment::updatePrimitiveModel()
+{
+	int dof = _robot->dof();
+	Eigen::MatrixXd N = Eigen::MatrixXd::Identity(dof,dof);
+	updatePrimitiveModel(N);
+}
+
 void SurfaceSurfaceAlignment::computeTorques(Eigen::VectorXd& torques)
 {
 	torques.setZero(_robot->_dof);
