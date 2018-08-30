@@ -179,7 +179,7 @@ void PosOriTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 	if(_max_velocity > 0)
 	{
 		Eigen::Vector3d proxy_error = _goal_position - _desired_position;
-		if( proxy_error.norm() > _max_velocity*_t_diff.count() )
+		if( proxy_error.norm() > 0 && proxy_error.norm() > _max_velocity*_t_diff.count() )
 		{
 			_desired_position += proxy_error/proxy_error.norm() * _max_velocity * _t_diff.count(); 
 		}
@@ -187,7 +187,7 @@ void PosOriTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 		{
 			_desired_position = _goal_position;
 		}
-		if( proxy_error.norm() > 10 * _max_velocity*_t_diff.count() )
+		if( proxy_error.norm() > 0 && proxy_error.norm() > 10 * _max_velocity*_t_diff.count() )
 		{
 			_desired_velocity = proxy_error/proxy_error.norm() * _max_velocity;
 		}
