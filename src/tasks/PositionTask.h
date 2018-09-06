@@ -70,6 +70,12 @@ public:
 	 */
 	virtual void computeTorques(Eigen::VectorXd& task_joint_torques);
 
+	/**
+	 * @brief      reinitializes the desired state to the current robot
+	 *             configuration as well as the integrator terms
+	 */
+	void reInitializeTask();
+
 	void enableVelocitySaturation(const Eigen::Vector3d& saturation_velocity);
 	
 	void disableVelocitySaturation();

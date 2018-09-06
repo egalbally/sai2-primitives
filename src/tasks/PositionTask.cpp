@@ -157,6 +157,24 @@ void PositionTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 	_t_prev = _t_curr;
 }
 
+void PositionTask::reInitializeTask()
+{
+	int dof = _robot->_dof;
+
+	_robot->position(_current_position, _link_name, _control_frame.translation());
+	_robot->position(_desired_position, _link_name, _control_frame.translation());
+	_robot->position(_goal_position, _link_name, _control_frame.translation());
+
+	_current_velocity.setZero();
+	_desired_velocity.setZero();
+	_saturation_velocity.setZero();
+
+	_integrated_position_error.setZero();
+
+	_first_iteration = true;
+}
+
+
 void PositionTask::enableVelocitySaturation(const Eigen::Vector3d& saturation_velocity)
 {
 	_velocity_saturation = true;
