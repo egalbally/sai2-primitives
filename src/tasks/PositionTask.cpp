@@ -114,6 +114,7 @@ void PositionTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 		{
 			_desired_position = _goal_position;
 		}
+		// _desired_velocity.setZero();
 		if( proxy_error.norm() > 0 && proxy_error.norm() > 10 * _max_velocity*_t_diff.count() )
 		{
 			_desired_velocity = proxy_error/proxy_error.norm() * _max_velocity;
