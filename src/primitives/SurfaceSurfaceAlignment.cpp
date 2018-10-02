@@ -46,6 +46,9 @@ SurfaceSurfaceAlignment::SurfaceSurfaceAlignment(Sai2Model::Sai2Model* robot,
 	localz = R_base_link.col(2);
 	_posori_task->setForceAxis(localz);
 	_posori_task->setAngularMotionAxis(localz);
+	_posori_task->_kp_moment = 2.5;
+	_posori_task->_ki_moment = 1.5;
+	_posori_task->_kv_moment = 5.0;
 
 	_posori_task->setClosedLoopMomentControl();
 
