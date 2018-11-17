@@ -5,6 +5,7 @@ SET (PROJECT_VERSION 0.1.0) #major version is zero for now since api will certai
 
 SET(CMAKE_CXX_FLAGS "-std=c++11 -I/usr/include -I/usr/local/include")
 SET(CMAKE_BUILD_TYPE "Debug")
+# SET(CMAKE_BUILD_TYPE "Release")
 
 # include Eigen
 set(EIGEN3_INCLUDE_DIR $ENV{EIGEN3_INCLUDE_DIR})
@@ -25,6 +26,7 @@ SET(TASKS_SOURCE
 	${PROJECT_SOURCE_DIR}/src/tasks/OrientationTask.cpp
 	${PROJECT_SOURCE_DIR}/src/tasks/PosOriTask.cpp
 	${PROJECT_SOURCE_DIR}/src/tasks/JointTask.cpp
+	${PROJECT_SOURCE_DIR}/src/tasks/SupportAndConstraintsTask.cpp
 	)
 
 # add primitives 
@@ -32,6 +34,7 @@ SET(PRIMITIVES_SOURCE
 	${PROJECT_SOURCE_DIR}/src/primitives/RedundantArmMotion.cpp
 	${PROJECT_SOURCE_DIR}/src/primitives/SurfaceSurfaceAlignment.cpp
 	${PROJECT_SOURCE_DIR}/src/primitives/ScrewingAlignment.cpp
+	${PROJECT_SOURCE_DIR}/src/primitives/DualArmObjectMotion.cpp
 	)
 
 # add header files
