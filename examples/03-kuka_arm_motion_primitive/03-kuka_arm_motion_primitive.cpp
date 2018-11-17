@@ -186,6 +186,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 	robot->updateModel();
 	int dof = robot->dof();
 	Eigen::VectorXd command_torques = Eigen::VectorXd::Zero(dof);
+	Eigen::MatrixXd N_prec = Eigen::MatrixXd::Identity(dof,dof);
 
 	string link_name = "link6";
 	Eigen::Vector3d pos_in_link = Eigen::Vector3d(0.0,0.0,0.0);
@@ -223,7 +224,8 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		robot->updateModel();
 
 		// update tasks model
-		motion_primitive->updatePrimitiveModel();
+		N_prec = Eigen::MatrixXd::Identity(dof,dof);
+		motion_primitive->updatePrimitiveModel(N_prec);
 
 		// -------------------------------------------
 		////////////////////////////// Compute joint torques

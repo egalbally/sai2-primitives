@@ -11,13 +11,14 @@
 #ifndef SAI2_PRIMITIVES_SURFACE_SURFACE_ALIGNMENT_H_
 #define SAI2_PRIMITIVES_SURFACE_SURFACE_ALIGNMENT_H_
 
+#include "TemplatePrimitive.h"
 #include "tasks/PosOriTask.h"
 #include "tasks/JointTask.h"
 
 namespace Sai2Primitives
 {
 
-class SurfaceSurfaceAlignment
+class SurfaceSurfaceAlignment : public TemplatePrimitive
 {
 public:
 
@@ -36,22 +37,46 @@ public:
 	                   const Eigen::Affine3d sensor_frame = Eigen::Affine3d::Identity());
 
 	/**
+	 * @brief Constructor that needs the control frame and sensor frame in local link frame
+	 * @details Assumes the control frame Z axis is in the direction of the surface normel on the robot side
+	 * 
+	 * @param robot                       robot model
+	 * @param link_name                   link to which are attached the control frame and the sensor frame (end effector link)
+	 * @param control_pos_in_link         Position of the control frame origin in link frame
+	 * @param sensor_pos_in_link          Position of the sensor frame origin in link frame
+	 * @param control_rot_in_link         Orientation of the control frame origin in link frame
+	 * @param sensor_rot_in_link          Orientation of the sensor frame origin in link frame
+	 */
+	SurfaceSurfaceAlignment(Sai2Model::Sai2Model* robot,
+				   const std::string link_name,
+                   const Eigen::Vector3d control_pos_in_link,
+                   const Eigen::Vector3d sensor_pos_in_link,
+                   const Eigen::Matrix3d control_rot_in_link = Eigen::Matrix3d::Identity(),
+                   const Eigen::Matrix3d sensor_rot_in_link = Eigen::Matrix3d::Identity());
+
+	/**
 	 * @brief Destructor
 	 */
 	~SurfaceSurfaceAlignment();
 
 	/**
-	 * @brief Updates the primitive model (dynamic quantities for op space and kinematics of the control frame position). 
+	 * @brief Updates the primitive model in the nummspace of the previous primitives (dynamic quantities for op space and kinematics of the control frame position). 
 	 * Call it after calling the dunction updateModel of the robot model
 	 */
-	void updatePrimitiveModel();
+	virtual void updatePrimitiveModel(const Eigen::MatrixXd N_prec);
+
+	/**
+	 * @brief Updates the primitive model assuming it is the highest level (dynamic quantities for op space and kinematics of the control frame position). 
+	 * Call it after calling the dunction updateModel of the robot model
+	 */
+	virtual void updatePrimitiveModel();
 
 	/**
 	 * @brief Computes the joint torques associated with the primitive
 	 * 
 	 * @param torques   Vector that will be populated by the joint torques
 	 */
-	void computeTorques(Eigen::VectorXd& torques);
+	virtual void computeTorques(Eigen::VectorXd& torques);
 
 	/**
 	 * @brief Updates the sensed force and moments from the force sensor. The quantities need to be expressed in sensor frame
@@ -84,6 +109,18 @@ public:
 	void disbleGravComp();
 
 	/**
+	 * @brief Enable the redundancy handling at the primitive level (enabled by default by default)
+	 * @details Use when controlling a single robot arm
+	 */
+	void enableRedundancyHandling();
+
+	/**
+	 * @brief Disable the redundancy handling at the primitive level (enabled by default by default)
+	 * @details Use when controlling a multi-arm system or mobile manipulator
+	 */
+	void disableRedundancyHandling();
+
+	/**
 	 * @brief TODO : not implemented yet
 	 */
 	void enableOrthogonalPosControl();
@@ -93,7 +130,6 @@ public:
 	 */
 	void enableOrthogonalRotControl();
 
-	Sai2Model::Sai2Model* _robot;
 	std::string _link_name;
 	Eigen::Affine3d _control_frame;
 	Eigen::Affine3d _sensor_frame;
@@ -112,6 +148,7 @@ public:
 
 protected:
 	bool _gravity_compensation = false;
+	bool _redundancy_handling = true;
 
 
 };

@@ -13,8 +13,16 @@ namespace Sai2Primitives
 {
 
 
-PositionTask::PositionTask(Sai2Model::Sai2Model* robot, std::string link_name, Eigen::Affine3d control_frame)
+PositionTask::PositionTask(Sai2Model::Sai2Model* robot, std::string link_name, Eigen::Affine3d control_frame) :
+	PositionTask(robot, link_name, control_frame.translation(), control_frame.linear()) {}
+
+PositionTask::PositionTask(Sai2Model::Sai2Model* robot, std::string link_name, Eigen::Vector3d pos_in_link, Eigen::Matrix3d rot_in_link)
 {
+
+	Eigen::Affine3d control_frame = Eigen::Affine3d::Identity();
+	control_frame.linear() = rot_in_link;
+	control_frame.translation() = pos_in_link;
+
 	_robot = robot;
 	_link_name = link_name;
 	_control_frame = control_frame;
@@ -23,49 +31,17 @@ PositionTask::PositionTask(Sai2Model::Sai2Model* robot, std::string link_name, E
 
 	_robot->position(_current_position, _link_name, _control_frame.translation());
 	_robot->position(_desired_position, _link_name, _control_frame.translation());
+	_robot->position(_goal_position, _link_name, _control_frame.translation());
+
+	_max_velocity = 0.0;
 
 	_current_velocity.setZero();
 	_desired_velocity.setZero();
+	_saturation_velocity.setZero();
 
-	_kp = 0;
-	_kv = 0;
-	_ki = 0;
-
-	_task_force.setZero();
-	_integrated_position_error.setZero();
-
-	_jacobian.setZero(3,dof);
-	_projected_jacobian.setZero(3,dof);
-	_Lambda.setZero(3,3);
-	_Jbar.setZero(dof,3);
-	_N.setZero(dof,dof);
-	_N_prec = Eigen::MatrixXd::Identity(dof,dof);
-
-	_first_iteration = true;
-}
-
-PositionTask::PositionTask(Sai2Model::Sai2Model* robot, std::string link_name, Eigen::Vector3d pos_in_link, Eigen::Matrix3d rot_in_link)
-{
-	_robot = robot;
-	_link_name = link_name;
-
-	Eigen::Affine3d control_frame = Eigen::Affine3d::Identity();
-	control_frame.linear() = rot_in_link;
-	control_frame.translation() = pos_in_link;
-
-	_control_frame = control_frame;
-
-	int dof = _robot->_dof;
-
-	robot->position(_current_position, _link_name, _control_frame.translation());
-	robot->position(_desired_position, _link_name, _control_frame.translation());
-
-	_current_velocity.setZero();
-	_desired_velocity.setZero();
-
-	_kp = 0;
-	_kv = 0;
-	_ki = 0;
+	_kp = 50.0;
+	_kv = 14.0;
+	_ki = 0.0;
 
 	_task_force.setZero();
 	_integrated_position_error.setZero();
@@ -126,8 +102,54 @@ void PositionTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 	// update angular velocity for D term
 	_current_velocity = _projected_jacobian * _robot->_dq;
 
+	// update desired position if in velocity saturation mode
+	if(_max_velocity > 0)
+	{
+		Eigen::Vector3d proxy_error = _goal_position - _desired_position;
+		if( proxy_error.norm() > 0 && proxy_error.norm() > _max_velocity*_t_diff.count() )
+		{
+			_desired_position += proxy_error/proxy_error.norm() * _max_velocity * _t_diff.count(); 
+		}
+		else
+		{
+			_desired_position = _goal_position;
+		}
+		// _desired_velocity.setZero();
+		if( proxy_error.norm() > 0 && proxy_error.norm() > 10 * _max_velocity*_t_diff.count() )
+		{
+			_desired_velocity = proxy_error/proxy_error.norm() * _max_velocity;
+		}
+		else
+		{
+			_desired_velocity.setZero();
+		}
+	}
+	else
+	{
+		_desired_position = _goal_position;
+	}
+
 	// compute task force
-	_task_force = _Lambda*(-_kp*(_current_position - _desired_position) - _kv*(_current_velocity - _desired_velocity ) - _ki * _integrated_position_error);
+	if(_velocity_saturation)
+	{
+		_desired_velocity = -_kp / _kv * (_current_position - _desired_position) - _ki/_kv * _integrated_position_error;
+		for(int i=0; i<3; i++)
+		{
+			if(_desired_velocity(i) > _saturation_velocity(i))
+			{
+				_desired_velocity(i) = _saturation_velocity(i);
+			}
+			else if(_desired_velocity(i) < -_saturation_velocity(i))
+			{
+				_desired_velocity(i) = -_saturation_velocity(i);
+			}
+		}
+		_task_force = _Lambda * (-_kv*(_current_velocity - _desired_velocity));
+	}
+	else
+	{
+		_task_force = _Lambda*(-_kp*(_current_position - _desired_position) - _kv*(_current_velocity - _desired_velocity ) - _ki * _integrated_position_error);
+	}
 
 	// compute task torques
 	task_joint_torques = _projected_jacobian.transpose()*_task_force;
@@ -136,6 +158,43 @@ void PositionTask::computeTorques(Eigen::VectorXd& task_joint_torques)
 	_t_prev = _t_curr;
 }
 
+void PositionTask::reInitializeTask()
+{
+	int dof = _robot->_dof;
+
+	_robot->position(_current_position, _link_name, _control_frame.translation());
+	_robot->position(_desired_position, _link_name, _control_frame.translation());
+	_robot->position(_goal_position, _link_name, _control_frame.translation());
+
+	_current_velocity.setZero();
+	_desired_velocity.setZero();
+	_saturation_velocity.setZero();
+
+	_integrated_position_error.setZero();
+
+	_first_iteration = true;
+}
+
+
+void PositionTask::enableVelocitySaturation(const Eigen::Vector3d& saturation_velocity)
+{
+	_velocity_saturation = true;
+	_saturation_velocity = saturation_velocity;
+	for(int i=0; i<3; i++)
+	{
+		if(_saturation_velocity(i) < 0)
+		{
+			std::cout << "WARNING : saturation velocity " << i << " should be positive. Set to zero" << std::endl;
+			_saturation_velocity(i) = 0;
+		}
+	}
+}
+
+void PositionTask::disableVelocitySaturation()
+{
+	_velocity_saturation = false;
+	_saturation_velocity.setZero();
+}
 
 } /* namespace Sai2Primitives */
 

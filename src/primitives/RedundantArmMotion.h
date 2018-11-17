@@ -9,13 +9,14 @@
 #ifndef SAI2_PRIMITIVES_REDUNDANTARM_MOTION_H_
 #define SAI2_PRIMITIVES_REDUNDANTARM_MOTION_H_
 
+#include "TemplatePrimitive.h"
 #include "tasks/PosOriTask.h"
 #include "tasks/JointTask.h"
 
 namespace Sai2Primitives
 {
 
-class RedundantArmMotion
+class RedundantArmMotion : public TemplatePrimitive
 {
 public:
 
@@ -49,17 +50,23 @@ public:
 	~RedundantArmMotion();
 
 	/**
-	 * @brief Updates the primitive model (dynamic quantities for op space and kinematics of the control frame position). 
+	 * @brief Updates the primitive model in the nummspace of the previous primitives (dynamic quantities for op space and kinematics of the control frame position). 
 	 * Call it after calling the dunction updateModel of the robot model
 	 */
-	void updatePrimitiveModel();
+	virtual void updatePrimitiveModel(const Eigen::MatrixXd N_prec);
+
+	/**
+	 * @brief Updates the primitive model assuming it is the highest level (dynamic quantities for op space and kinematics of the control frame position). 
+	 * Call it after calling the dunction updateModel of the robot model
+	 */
+	virtual void updatePrimitiveModel();
 
 	/**
 	 * @brief Computes the joint torques associated with the primitive
 	 * 
 	 * @param torques   Vector that will be populated by the joint torques
 	 */
-	void computeTorques(Eigen::VectorXd& torques);
+	virtual void computeTorques(Eigen::VectorXd& torques);
 
 	/**
 	 * @brief Enable the gravity compensation at the primitive level (disabled by default)
@@ -73,7 +80,18 @@ public:
 	 */
 	void disbleGravComp();
 
-	Sai2Model::Sai2Model* _robot;
+	/**
+	 * @brief Enable the redundancy handling at the primitive level (enabled by default by default)
+	 * @details Use when controlling a single robot arm
+	 */
+	void enableRedundancyHandling();
+
+	/**
+	 * @brief Disable the redundancy handling at the primitive level (enabled by default by default)
+	 * @details Use when controlling a multi-arm system or mobile manipulator
+	 */
+	void disableRedundancyHandling();
+
 	std::string _link_name;
 	Eigen::Affine3d _control_frame;
 
@@ -88,6 +106,7 @@ public:
 
 protected:
 	bool _gravity_compensation = false;
+	bool _redundancy_handling = true;
 
 
 };

@@ -14,6 +14,7 @@
 #define SAI2_PRIMITIVES_POSORI_TASK_H_
 
 #include "Sai2Model.h"
+#include "TemplateTask.h"
 #include <Eigen/Dense>
 #include <string>
 #include <chrono>
@@ -21,7 +22,7 @@
 namespace Sai2Primitives
 {
 
-class PosOriTask
+class PosOriTask : public TemplateTask
 {
 public:
 
@@ -67,11 +68,11 @@ public:
 	 * There is no use to calling it if the robot kinematics or dynamics have not been updated since the last call.
 	 * This function takes the N_prec matrix as a parameter which is the product of the nullspace matrices of the higher priority tasks.
 	 * The N matrix will be the matrix to use as N_prec for the subsequent tasks.
-	 * In order to get the nullspace matrix of this task alone, one needs to compute _N * _N_prec.transpose().	
+	 * In order to get the nullspace matrix of this task alone, one needs to compute _N * _N_prec.inverse().	
 	 * 
 	 * @param N_prec The nullspace matrix of all the higher priority tasks. If this is the highest priority task, use identity of size n*n where n in the number of DoF of the robot.
 	 */
-	void updateTaskModel(const Eigen::MatrixXd N_prec);
+	virtual void updateTaskModel(const Eigen::MatrixXd N_prec);
 
 	/**
 	 * @brief Computes the torques associated with this task.
@@ -80,7 +81,17 @@ public:
 	 * 
 	 * @param task_joint_torques the vector to be filled with the new joint torques to apply for the task
 	 */
-	void computeTorques(Eigen::VectorXd& task_joint_torques);
+	virtual void computeTorques(Eigen::VectorXd& task_joint_torques);
+
+	/**
+	 * @brief      reinitializes the desired state to the current robot
+	 *             configuration as well as the integrator terms
+	 */
+	void reInitializeTask();
+
+	void enableVelocitySaturation(const Eigen::Vector3d& linear_saturation_velocity, const Eigen::Vector3d& angular_saturation_velocity);
+	
+	void disableVelocitySaturation();
 
 	// -------- force control related methods --------
 
@@ -250,13 +261,13 @@ public:
 	// Attributes
 	//------------------------------------------------
 
-	Sai2Model::Sai2Model* _robot;
 	std::string _link_name;
 	Eigen::Affine3d _control_frame;   // in link_frame
 
 	// movement quantities
 	Eigen::Vector3d _current_position;      // robot frame
 	Eigen::Vector3d _desired_position;      // robot frame
+	Eigen::Vector3d _goal_position;         // robot frame
 	Eigen::Matrix3d _current_orientation;   // robot frame
 	Eigen::Matrix3d _desired_orientation;   // robot frame
 
@@ -297,22 +308,19 @@ public:
 	bool _closed_loop_force_control;
 	bool _closed_loop_moment_control;
 
-	// task force (6D vector of forces and moments at control frame)
-	Eigen::VectorXd _task_force;   // robot frame
-
 	// model quantities
 	Eigen::MatrixXd _jacobian;
 	Eigen::MatrixXd _projected_jacobian;
 	Eigen::MatrixXd _Lambda;
 	Eigen::MatrixXd _Jbar;
 	Eigen::MatrixXd _N;
-	Eigen::MatrixXd _N_prec;
 
-	// timing for I term
-	std::chrono::high_resolution_clock::time_point _t_prev;
-	std::chrono::high_resolution_clock::time_point _t_curr;
-	std::chrono::duration<double> _t_diff;
-	bool _first_iteration;
+	bool _velocity_saturation = false;
+	Eigen::Vector3d _linear_saturation_velocity;
+	Eigen::Vector3d _angular_saturation_velocity;
+
+	double _max_velocity;
+
 };
 
 

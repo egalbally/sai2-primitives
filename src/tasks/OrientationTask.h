@@ -12,6 +12,7 @@
 #define SAI2_PRIMITIVES_ORIENTATION_TASK_H_
 
 #include "Sai2Model.h"
+#include "TemplateTask.h"
 #include <Eigen/Dense>
 #include <string>
 #include <chrono>
@@ -19,7 +20,7 @@
 namespace Sai2Primitives
 {
 
-class OrientationTask
+class OrientationTask : public TemplateTask
 {
 public:
 
@@ -54,11 +55,11 @@ public:
 	 * There is no use to calling it if the robot kinematics or dynamics have not been updated since the last call.
 	 * This function takes the N_prec matrix as a parameter which is the product of the nullspace matrices of the higher priority tasks.
 	 * The N matrix will be the matrix to use as N_prec for the subsequent tasks.
-	 * In order to get the nullspace matrix of this task alone, one needs to compute _N * _N_prec.transpose().	
+	 * In order to get the nullspace matrix of this task alone, one needs to compute _N * _N_prec.inverse().	
 	 * 
 	 * @param N_prec The nullspace matrix of all the higher priority tasks. If this is the highest priority task, use identity of size n*n where n in the number of DoF of the robot.
 	 */
-	void updateTaskModel(const Eigen::MatrixXd N_prec);
+	virtual void updateTaskModel(const Eigen::MatrixXd N_prec);
 
 	/**
 	 * @brief Computes the torques associated with this task.
@@ -67,10 +68,9 @@ public:
 	 * 
 	 * @param task_joint_torques the vector to be filled with the new joint torques to apply for the task
 	 */
-	void computeTorques(Eigen::VectorXd& task_joint_torques);
+	virtual void computeTorques(Eigen::VectorXd& task_joint_torques);
 
 
-	Sai2Model::Sai2Model* _robot;
 	std::string _link_name;
 	Eigen::Affine3d _control_frame;
 
@@ -84,7 +84,6 @@ public:
 	double _kv;
 	double _ki;
 
-	Eigen::Vector3d _task_force;
 	Eigen::Vector3d _orientation_error;
 	Eigen::Vector3d _integrated_orientation_error;
 
@@ -93,12 +92,7 @@ public:
 	Eigen::MatrixXd _Lambda;
 	Eigen::MatrixXd _Jbar;
 	Eigen::MatrixXd _N;
-	Eigen::MatrixXd _N_prec;
 
-	std::chrono::high_resolution_clock::time_point _t_prev;
-	std::chrono::high_resolution_clock::time_point _t_curr;
-	std::chrono::duration<double> _t_diff;
-	bool _first_iteration;
 };
 
 

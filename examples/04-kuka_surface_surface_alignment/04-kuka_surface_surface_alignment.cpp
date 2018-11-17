@@ -213,6 +213,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 	robot->updateModel();
 	int dof = robot->dof();
 	Eigen::VectorXd command_torques = Eigen::VectorXd::Zero(dof);
+	Eigen::MatrixXd N_prec = Eigen::MatrixXd::Identity(dof,dof);
 
 	Eigen::Affine3d control_frame_in_link = Eigen::Affine3d::Identity();
 	control_frame_in_link.translation() = pos_in_link;
@@ -247,7 +248,8 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		robot->updateModel();
 
 		// update tasks model
-		surf_alignment_primitive->updatePrimitiveModel();
+		N_prec = Eigen::MatrixXd::Identity(dof,dof);
+		surf_alignment_primitive->updatePrimitiveModel(N_prec);
 
 		// -------------------------------------------
 		////////////////////////////// Compute joint torques
