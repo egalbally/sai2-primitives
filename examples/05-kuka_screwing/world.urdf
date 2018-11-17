@@ -22,7 +22,7 @@
 	    <visual>
 	        <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
 	        <geometry>
-	            <box size="0.3 2.0 0.1" />
+	            <box size="3.0 3.0 0.1" />
 	        </geometry>
 	        <material name="material_red">
 		        <color rgba="0.1 0.1 0.1 1.0" />
@@ -43,7 +43,7 @@
 	<camera name="camera">
 		<position xyz="-2.0 0.0 1.0" />
 		<vertical xyz="0.0 0.0 1.0" />
-		<lookat xyz="0.0 0.0 3.0" />
+		<lookat xyz="0.0 0.0 0.5" />
 	</camera>
 
 </world>
