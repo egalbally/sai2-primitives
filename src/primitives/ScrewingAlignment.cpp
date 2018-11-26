@@ -69,6 +69,7 @@ ScrewingAlignment::ScrewingAlignment(Sai2Model::Sai2Model* robot,
 
 	// _joint_task->_kp = 10.0; //modified, originally 10
 	// _joint_task->_kv = 5.0;  //modified, originally 5
+    std::cout << "\n";
 	std::cout << "task force at primitive creation : " << _posori_task->_task_force.transpose() << std::endl;
 	std::cout << "kp force at primitive creation : " << _posori_task->_kp_force << std::endl;
 }

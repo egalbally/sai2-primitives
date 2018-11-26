@@ -355,6 +355,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 				}
 				break;
 			case SCREWING:
+				// cout << "START SCREW" << endl;
 				current_pos1 = current_position;
 				robot->position(current_position, motion_primitive->_link_name, motion_primitive->_control_frame.translation());
 				current_position = current_pos1;
@@ -436,6 +437,9 @@ ControllerStatus approach(Sai2Primitives::RedundantArmMotion* motion_primitive, 
 	approach_point <<  -0.1,
 					  -0.19,
 					  -0.24;
+	// approach_point <<  -0.1,
+	// 				  -0.0,
+	// 				  -1;
 
 	motion_primitive->_desired_position = initial_position + approach_point;
 	motion_primitive->_desired_velocity = Eigen::Vector3d(0.5,0.5,0.5);
@@ -498,7 +502,7 @@ ControllerStatus alignment(Sai2Model::Sai2Model* robot, Sai2Primitives::Redundan
 }
 
 ControllerStatus screwing(Sai2Model::Sai2Model* robot, Sai2Primitives::RedundantArmMotion* motion_primitive, Sai2Primitives::ScrewingAlignment* screwing_primitive, Eigen::Vector3d current_position, Eigen::Matrix3d initial_orientation, Eigen::VectorXd command_torques, Simulation::Sai2Simulation* sim, Eigen::Affine3d sensor_frame_in_link){
-
+	
 		Eigen::Matrix3d R;
 		Eigen::Vector3d T;
 		Eigen::Vector3d V;
