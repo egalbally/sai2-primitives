@@ -99,6 +99,7 @@ public:
 	JointTask* _joint_task;
 
 	Eigen::Vector3d _desired_position;
+	Eigen::Vector3d _goal_position;         // robot frame
 	Eigen::Matrix3d _desired_orientation;
 
 	Eigen::Vector3d _desired_velocity;

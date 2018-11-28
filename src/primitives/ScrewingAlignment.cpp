@@ -55,7 +55,7 @@ ScrewingAlignment::ScrewingAlignment(Sai2Model::Sai2Model* robot,
 
 	// _posori_task->_desired_moment = Eigen::Vector3d(0.0,0.0,0.0);
 
-	_desired_position = _posori_task->_desired_position;
+	_desired_position = _posori_task->_goal_position;
 	// _desired_orientation = _posori_task->_desired_orientation;
 
 	// _desired_velocity = _posori_task->_desired_velocity;
