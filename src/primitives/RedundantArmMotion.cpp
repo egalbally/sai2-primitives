@@ -34,7 +34,7 @@ RedundantArmMotion::RedundantArmMotion(Sai2Model::Sai2Model* robot,
 	_posori_task = new PosOriTask(_robot, link_name, control_frame);
 	_joint_task = new JointTask(_robot);
 
-	_desired_position = _posori_task->_desired_position;
+	_desired_position = _posori_task->_goal_position;
 	_desired_orientation = _posori_task->_desired_orientation;
 
 	_desired_velocity = _posori_task->_desired_velocity;
@@ -79,7 +79,7 @@ void RedundantArmMotion::computeTorques(Eigen::VectorXd& torques)
 {
 	torques.setZero(_robot->_dof);
 
-	_posori_task->_desired_position = _desired_position;
+	_posori_task->_goal_position = _desired_position;
 	_posori_task->_desired_orientation = _desired_orientation;
 	_posori_task->_desired_velocity = _desired_velocity;
 	_posori_task->_desired_angular_velocity = _desired_angular_velocity;

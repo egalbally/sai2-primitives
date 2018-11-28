@@ -437,9 +437,6 @@ ControllerStatus approach(Sai2Primitives::RedundantArmMotion* motion_primitive, 
 	approach_point <<  -0.1,
 					  -0.19,
 					  -0.24;
-	// approach_point <<  -0.1,
-	// 				  -0.0,
-	// 				  -1;
 
 	motion_primitive->_desired_position = initial_position + approach_point;
 	motion_primitive->_desired_velocity = Eigen::Vector3d(0.5,0.5,0.5);
