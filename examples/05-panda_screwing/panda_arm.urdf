@@ -113,6 +113,9 @@
         <geometry>
           <mesh filename="../../../../examples/models/panda/meshes/link6.obj"/>
         </geometry>
+        <material>
+          <color rgba="0.5 0.2 0.1 1.0" />
+        </material>
       </visual>
       <!-- <collision>
         <geometry>
@@ -120,6 +123,8 @@
         </geometry>
       </collision> -->
     </link>
+
+
     <link name="link7">
       <inertial>
         <origin xyz="0 0 0.08" rpy="0 -0 0" />
@@ -134,19 +139,25 @@
       </visual>
       <!-- <collision>
         <geometry>
-          <mesh filename="../../../../examples/models/panda/meshes/link7.obj"/>
+          <mesh filename="../../../Model/meshes/link7.obj"/>
         </geometry>
       </collision> -->
-        <visual>
-            <origin xyz="0 0 0.37" rpy="0 0 0" />
-            <geometry>
-<!--                 <box size="0.08 0.08 0.08" /> -->
-                <!-- <cylinder radius="0.06" length="0.03"/> -->
-                <mesh filename="Cap2_NoThreads.obj" scale="0.041 0.041 0.041" />
-            </geometry>
-        </visual>
-        <visual>
-            <origin xyz="0 0 0.045" rpy="0 0 0" />
+      <visual>
+        <origin xyz="0 0 0.107" rpy="0 0 -0.78539816339" />
+        <geometry>
+          <mesh filename="../../../../examples/models/panda/meshes/hand.obj"/>
+        </geometry>
+      </visual>
+      <visual>
+        <origin xyz="0 0 0.37" rpy="0 0 3.14159265359" />
+        <geometry>
+            <!-- <box size="0.08 0.08 0.08" /> -->
+            <!-- <cylinder radius="0.06" length="0.03"/> -->
+            <mesh filename="Cap2_NoThreads.obj" scale="0.041 0.041 0.041" />
+        </geometry>
+      </visual>
+      <visual>
+            <origin xyz="0 0 0.045" rpy="0 0 3.14159265359" />
             <geometry>
                 <box size="0.15 0.02 0.005" />
                 <!-- <cylinder radius="0.08" length="0.01"/> -->
@@ -154,9 +165,9 @@
             <material name="material_ee">
                 <color rgba="0.5 0.2 0.1 1.0" />
             </material>
-        </visual>
-        <visual>
-            <origin xyz="0 0 0.045" rpy="0 0 0" />
+      </visual>
+      <visual>
+            <origin xyz="0 0 0.045" rpy="0 0 3.14159265359" />
             <geometry>
                 <box size="0.02 0.15 0.005" />
                 <!-- <cylinder radius="0.08" length="0.01"/> -->
@@ -164,14 +175,9 @@
             <material name="material_ee">
                 <color rgba="0.5 0.5 0.0 1.0" />
             </material>
-        </visual>
-<!--         <collision>
-            <origin xyz="0 0 0" rpy="0 0 0" />
-            <geometry>
-                <mesh filename="../../../../examples/models/iiwa7/meshes/link6.obj" scale="1 1 1" />
-            </geometry>
-        </collision> -->
-        <collision>
+      </visual>
+
+      <collision>
 <!--             <origin xyz="0 0 0.03" rpy="0 0 0" />
             <geometry>
                 <cylinder radius="0.06" length="0.03"/>
@@ -180,9 +186,9 @@
             <geometry>
                 <mesh filename="Cap2_NoThreads.obj" scale="0.041 0.041 0.041" />
             </geometry>
-        </collision>
+      </collision>
 
-      
+
     </link>
     <joint name="joint1" type="revolute">
       <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-2.8973" soft_upper_limit="2.8973"/>
