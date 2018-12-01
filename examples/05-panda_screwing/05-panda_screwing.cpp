@@ -53,7 +53,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim);
 void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* bottle, ForceSensorSim* fsensor, Simulation::Sai2Simulation* sim);
 
 // control link and position in link
-const string link_name = "link6";
+const string link_name = "link7";
 const Eigen::Vector3d pos_in_link = Eigen::Vector3d(0.0,0.0,0.20);
 const Eigen::Vector3d sensor_pos_in_link = Eigen::Vector3d(0.0,0.0,0.05);
 Eigen::Vector3d sensed_force;
