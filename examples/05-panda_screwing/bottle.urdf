@@ -1,0 +1,70 @@
+<?xml version="1.0" ?>
+<robot name="bottle">
+    <link name="base_link">
+        <inertial>
+            <origin xyz="0 0 0.0" rpy="0 -0 0" />
+            <mass value="1" />
+            <inertia ixx="0.1" iyy="0.1" izz="0.1" ixy="0" ixz="0" iyz="0" />
+        </inertial>
+    </link>
+    <link name="link0">
+        <inertial>
+            <origin xyz="0 0 0.14" rpy="0 -0 0" />
+            <mass value="4" />
+            <inertia ixx="0.4" iyy="0.4" izz="0.4" ixy="0" ixz="0" iyz="0" />
+        </inertial>
+    </link>
+    <link name="link1">
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 -0 0" />
+            <mass value="1" />
+            <inertia ixx="0.1" iyy="0.1" izz="0.1" ixy="0" ixz="0" iyz="0" />
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 -0 0" />
+            <!-- <origin xyz="0 0 0" rpy="0 0 0" /> -->
+            <geometry>
+                <cylinder radius="0.045" length="0.22"/>
+                <!-- <mesh filename="Bottle_NoThreads.obj" scale="0.04 0.04 0.04" /> -->
+            </geometry>
+            <material name="material_bottle">
+                <color rgba="0.1 0.1 0.8 1.0" />
+            </material>
+        </visual>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 -0 0" />
+            <geometry>
+                <cylinder radius="0.055" length="0.21"/>
+                <!-- <mesh filename="Bottle_NoThreads.obj" scale="0.04 0.04 0.04" /> -->
+            </geometry>
+             <material name="material_bottle">
+                <color rgba="0.1 0.1 0.8 1.0" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 -0 0" />
+            <!-- <origin xyz="0 0 0" rpy="0 0 0" /> -->
+            <geometry>
+                <cylinder radius="0.045" length="0.22"/>
+                <!-- <mesh filename="Bottle_NoThreads.obj" scale="0.04 0.04 0.04" /> -->
+            </geometry>
+        </collision>
+    </link>
+
+    <joint name="j0" type="revolute">
+        <parent link="base_link" />
+        <child link="link0" />
+        <origin xyz="0.000000 0.000000 0.0" rpy="0.000000 0.000000 0.000000" />
+        <axis xyz="1 0 0" />
+        <!-- <limit lower="-2.967" upper="2.967" effort="176" velocity="1.7104" /> -->
+        <limit lower="-2.967" upper="2.967" effort="176" velocity="0" />
+    </joint>
+    <joint name="j1" type="revolute">
+        <parent link="link0" />
+        <child link="link1" />
+        <origin xyz="0.000000 0.000000 0.0" rpy="0.000000 0.000000 0.000000" />
+        <axis xyz="0 1 0" />
+        <!-- <limit lower="-2.0944" upper="2.0944" effort="176" velocity="1.7104" /> -->
+        <limit lower="-2.0944" upper="2.0944" effort="176" velocity="0" />
+    </joint>
+</robot>
