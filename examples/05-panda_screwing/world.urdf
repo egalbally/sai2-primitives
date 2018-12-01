@@ -14,7 +14,7 @@
 		<model dir="./resources" path="bottle.urdf" name="bottle" />
 		<!-- origin node is optional -->
 		<!-- <origin xyz="0.0 -0.7 0.04" rpy="0 0 0" /> -->
-		<origin xyz="0.0 -0.66 0.04" rpy="0 0 0" />
+		<origin xyz="0.3 -0.05 0.04" rpy="0 0 0" />
 	</robot>
 
 	<static_object name="Floor">
@@ -31,6 +31,16 @@
 	</static_object>
 
 	<light name="light1" type="directional">
+		<position xyz="2.0 -2.0 2.0" />
+		<lookat xyz="0.0 0.0 0.0" />
+	</light>
+
+	<light name="light2" type="directional">
+		<position xyz="2.0 2.0 2.0" />
+		<lookat xyz="0.0 0.0 0.0" />
+	</light>
+
+	<!-- <light name="light1" type="directional">
 		<position xyz="-2.0 -2.0 2.0" />
 		<lookat xyz="0.0 0.0 0.0" />
 	</light>
@@ -38,12 +48,17 @@
 	<light name="light2" type="directional">
 		<position xyz="-2.0 2.0 2.0" />
 		<lookat xyz="0.0 0.0 0.0" />
-	</light>
+	</light> -->
 
 	<camera name="camera">
-		<position xyz="-2.0 0.0 1.0" />
+		<position xyz="1.0 1.0 0.5" />
 		<vertical xyz="0.0 0.0 1.0" />
 		<lookat xyz="0.0 0.0 0.5" />
 	</camera>
+	<!-- <camera name="camera">
+		<position xyz="0.4 -2.0 2.0" />
+		<vertical xyz="0.0 0.0 1.0" />
+		<lookat xyz="0.0 0.0 0.5" />
+	</camera> -->
 
 </world>
