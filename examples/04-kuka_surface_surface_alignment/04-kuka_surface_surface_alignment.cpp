@@ -381,10 +381,10 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		//*
 		// Recording data
 		//*
-		if (curr_time <= 8.0)
-		{
-			recordData(curr_time, dof, sensed_force, sensed_moment, command_torques);
-		}
+		// if (curr_time <= 8.0)
+		// {
+		// 	recordData(curr_time, dof, sensed_force, sensed_moment, command_torques);
+		// }
 	}
 
 	double end_time = timer.elapsedTime();
