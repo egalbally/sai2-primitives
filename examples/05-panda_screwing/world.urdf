@@ -42,17 +42,17 @@
 	</light>
 
 	<!-- ZOOM -->
-	<camera name="camera">
-		<position xyz="1.0 1.0 0.5" />
-		<vertical xyz="0.0 0.0 1.0" />
-		<lookat xyz="0.0 0.0 0.5" />
-	</camera>
-
-	<!-- NO ZOOM -->
 	<!-- <camera name="camera">
 		<position xyz="1.0 1.0 0.5" />
 		<vertical xyz="0.0 0.0 1.0" />
 		<lookat xyz="0.0 0.0 0.5" />
 	</camera> -->
+
+	<!-- NO ZOOM -->
+	<camera name="camera">
+		<position xyz="0.2 1.5 0.5" />
+		<vertical xyz="0.0 0.0 1.0" />
+		<lookat xyz="0.0 0.0 0.5" />
+	</camera>
 	
 </world>
