@@ -21,6 +21,8 @@
 #include <dynamics3d.h>
 
 #include "timer/LoopTimer.h"
+#include "force_sensor/ForceSensorSim.h"
+#include "tasks/PosOriTask.h"
 
 #include <GLFW/glfw3.h> //must be loaded after loading opengl/glew as part of graphicsinterface
 
@@ -39,6 +41,11 @@ const string camera_name = "camera_front";
 const string ee_link_name = "end-effector";
 const string gripper_joint_name = "gripper";
 
+Eigen::Vector3d sensed_force1;
+Eigen::Vector3d sensed_force2;
+Eigen::Vector3d sensed_moment1;
+Eigen::Vector3d sensed_moment2;
+
 /* ----------------------------------------------------------------------------------
 	Simulation and Control Loop Setup
 -------------------------------------------------------------------------------------*/
@@ -52,7 +59,7 @@ enum ControlMode {
 // simulation loop
 bool fSimulationRunning = false;
 void control(Sai2Model::Sai2Model* robot1, Sai2Model::Sai2Model* robot2, Sai2Model::Sai2Model* object_model, Simulation::Sai2Simulation* sim);
-void simulation(Simulation::Sai2Simulation* sim);
+void simulation(ForceSensorSim* fsensor1, ForceSensorSim* fsensor2, Simulation::Sai2Simulation* sim);
 
 // initialize window manager
 GLFWwindow* glfwInitialize();
@@ -80,6 +87,12 @@ int main (int argc, char** argv) {
 	// load object
 	auto coobject = new Sai2Model::Sai2Model(object_fname, false);
 
+	// load simulated force sensor
+	Eigen::Affine3d T_sensor = Eigen::Affine3d::Identity();
+	// T_sensor.translation() = Eigen::Vector3d(0.0, 0.0, 0.1725);
+	auto fsensor1 = new ForceSensorSim(robot1_name, ee_link_name, T_sensor, robot1);
+	auto fsensor2 = new ForceSensorSim(robot2_name, ee_link_name, T_sensor, robot2);
+	
 	// load simulation world
 	auto sim = new Simulation::Sai2Simulation(world_fname, false);
 	// set co-efficient of restition to zero to avoid bounce
@@ -130,7 +143,7 @@ int main (int argc, char** argv) {
 
 	// start the simulation thread first
     fSimulationRunning = true;
-	thread sim_thread(simulation, sim);
+	thread sim_thread(simulation, fsensor1, fsensor2, sim);
 
 	// next start the control thread
 	thread ctrl_thread(control, robot1, robot2, coobject, sim);
@@ -192,6 +205,9 @@ void control(Sai2Model::Sai2Model* robot1, Sai2Model::Sai2Model* robot2, Sai2Mod
 	timer.setLoopFrequency(1000); //1000Hz timer
 	double last_time = timer.elapsedTime()/time_slowdown_factor; //secs
 
+	Sai2Primitives::PosOriTask* posori_task1 = new Sai2Primitives::PosOriTask(robot1, ee_link_name, Eigen::Vector3d::Zero());
+	Sai2Primitives::PosOriTask* posori_task2 = new Sai2Primitives::PosOriTask(robot2, ee_link_name, Eigen::Vector3d::Zero());
+
 	// load robot global frame to robot base transformations: todo: move out to a function
 	Eigen::Affine3d robot1_base_frame = sim->getRobotBaseTransform(robot1_name);
 	Eigen::Affine3d robot2_base_frame = sim->getRobotBaseTransform(robot2_name);
@@ -236,6 +252,9 @@ void control(Sai2Model::Sai2Model* robot1, Sai2Model::Sai2Model* robot2, Sai2Mod
 	Eigen::VectorXd obj_task_err(6);
 	Eigen::VectorXd force_des_vec(12);
 	Eigen::VectorXd force_ee_vec(12);
+
+	Eigen::VectorXd force_obj_act_vec(12);
+	Eigen::VectorXd force_ee_act_vec(12);
 
 	double kp = 30;
 	double kv = 10;
@@ -344,10 +363,25 @@ void control(Sai2Model::Sai2Model* robot1, Sai2Model::Sai2Model* robot2, Sai2Mod
 		G.block(11,3,1,3) = -0.5*e12.transpose();
 		G.block(11,9,1,3) = 0.5*e12.transpose();
 
+		// update sensed values (need to put them back in sensor frame)
+		Eigen::Affine3d sensor_frame_in_link = Eigen::Affine3d::Identity();
+		
+		Eigen::Matrix3d R_link1;
+		robot1->rotation(R_link1, ee_link_name);
+		Eigen::Matrix3d R_sensor1 = R_link1*sensor_frame_in_link.rotation();
+		posori_task1->updateSensedForceAndMoment(- R_sensor1.transpose() * sensed_force1, - R_sensor1.transpose() * sensed_moment1);
+
+		Eigen::Matrix3d R_link2;
+		robot2->rotation(R_link2, ee_link_name);
+		Eigen::Matrix3d R_sensor2 = R_link2*sensor_frame_in_link.rotation();
+		posori_task2->updateSensedForceAndMoment(- R_sensor2.transpose() * sensed_force2, - R_sensor2.transpose() * sensed_moment2);
+
 		/* ---------------------- Force control ---------------------- */
 		if (control_mode == CONTROL_AUGMENTED_OBJECT) {
 			// - desired object position and current task error
-			obj_des_pos << 0, 0.15*sin(2*M_PI*curr_time/3), 0.4;
+			// obj_des_pos << 0, 0.15*sin(2*M_PI*curr_time/3), 0.4;
+			obj_des_pos << 0, 0, 0;
+			// obj_des_pos << 0, 0, 0;
 			Sai2Model::orientationError(obj_ori_error, Eigen::Matrix3d::Identity(), object_com_frame.linear());
 			obj_task_err << (object_com_frame.translation() - obj_des_pos), obj_ori_error;
 
@@ -428,6 +462,12 @@ void control(Sai2Model::Sai2Model* robot1, Sai2Model::Sai2Model* robot2, Sai2Mod
 		sim->setJointTorques(robot1_name, tau1);
 		sim->setJointTorques(robot2_name, tau2);
 		
+		// compute the actual internal object forces from sensed force and moment
+		force_ee_act_vec << sensed_force1, sensed_force2, sensed_moment1, sensed_moment2;
+		force_obj_act_vec = G * force_ee_act_vec;
+
+		cout << force_obj_act_vec[6] << endl;
+
 		// update last time
 		last_time = curr_time;
 	}
@@ -441,7 +481,7 @@ void control(Sai2Model::Sai2Model* robot1, Sai2Model::Sai2Model* robot2, Sai2Mod
    * Window error
    * Mouse click commands
 ========================================================================================== */
-void simulation(Simulation::Sai2Simulation* sim) {
+void simulation(ForceSensorSim* fsensor1, ForceSensorSim* fsensor2, Simulation::Sai2Simulation* sim) {
 	fSimulationRunning = true;
 
 	// create a timer
@@ -459,6 +499,16 @@ void simulation(Simulation::Sai2Simulation* sim) {
 		// if (timer.elapsedCycles() % 10000 == 0) {
 		// 	cout << "Simulation loop frequency: " << timer.elapsedCycles()/timer.elapsedTime() << endl; 
 		// }
+
+		// force sensor update
+		fsensor1->update(sim);
+		fsensor1->getForce(sensed_force1);
+		fsensor1->getMoment(sensed_moment1);
+
+		// force sensor update
+		fsensor2->update(sim);
+		fsensor2->getForce(sensed_force2);
+		fsensor2->getMoment(sensed_moment2);
 
 		// integrate forward
 		double curr_time = timer.elapsedTime()/time_slowdown_factor;
