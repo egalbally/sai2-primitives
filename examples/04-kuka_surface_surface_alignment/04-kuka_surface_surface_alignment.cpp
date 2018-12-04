@@ -52,16 +52,16 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* plate, ForceS
 
 // control link and position in link
 const string link_name = "link6";
-const Eigen::Vector3d pos_in_link = Eigen::Vector3d(0.0,0.0,0.40);
+const Eigen::Vector3d pos_in_link = Eigen::Vector3d(0.0,0.0,0.20);
 const Eigen::Vector3d sensor_pos_in_link = Eigen::Vector3d(0.0,0.0,0.05);
 Eigen::Vector3d sensed_force;
 Eigen::Vector3d sensed_moment;
 Eigen::Vector3d pos_ball;
 double curr_time;
 
-//*
+//---*
 // Recording data
-//*
+//
 // Get current date/time, format is YYYY-MM-DD_HH-mm-ss
 const std::string currentDateTime() {
     time_t     now = time(0);
@@ -80,6 +80,7 @@ const string record_file = "../../../src/dataPlotter/Data/dataSurfAlign_pos_" + 
 void recordData(double curr_time, int dof, Eigen::Vector3d sensed_force, Eigen::Vector3d sensed_moment, Eigen::VectorXd command_torques);
 // helper function to record data to CSV file
 void recordToCSV(Eigen::VectorXd &v, const std::string &filename);
+//---*
 
 // initialize window manager
 GLFWwindow* glfwInitialize();
@@ -140,6 +141,16 @@ int main (int argc, char** argv) {
 	auto fsensor = new ForceSensorSim(robot_name, link_name, T_sensor, robot);
 	auto fsensor_display = new ForceSensorDisplay(fsensor, graphics);
 
+	//Display frame on viz ball
+	auto vis_world_ptr = graphics->_world;
+	chai3d::cGenericObject* object_ptr;
+	for (uint i = 0; i < vis_world_ptr->getNumChildren(); i++) {
+		auto temp_ptr = vis_world_ptr->getChild(i);
+		if (strcmp(temp_ptr->m_name.c_str(), frame_viz_name.c_str()) == 0) {
+			object_ptr = temp_ptr;
+		}
+	}
+	object_ptr->setShowFrame(true, false);
 
 	// initialize GLFW window
 	GLFWwindow* window = glfwInitialize();

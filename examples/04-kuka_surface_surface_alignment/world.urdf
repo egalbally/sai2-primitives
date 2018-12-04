@@ -21,7 +21,7 @@
 	    <visual>
 	        <!-- <origin xyz="0.0 0.0 0.0" rpy="0 0 0" /> -->
 	        <geometry>
-	            <sphere radius="0.1" />
+	            <sphere radius="0.05" />
 	        </geometry>
 	        <material name="red">
 		        <color rgba="1.0 0.0 0.0 1.0" />
