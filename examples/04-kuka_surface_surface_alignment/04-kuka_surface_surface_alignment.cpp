@@ -3,7 +3,11 @@
  *
  */
 
+/* --------------------------------------------------------------------------------------
+   Include Required Libraries and Files
+-----------------------------------------------------------------------------------------*/
 #include <iostream>
+#include <fstream> 
 #include <string>
 #include <thread>
 #include <math.h>
@@ -22,6 +26,10 @@
 #include <GLFW/glfw3.h> //must be loaded after loading opengl/glew as part of Sai2Graphics
 
 #include <signal.h>
+
+/* ----------------------------------------------------------------------------------
+	Simulation, Control Loop and Record data Setup
+-------------------------------------------------------------------------------------*/
 bool fSimulationRunning = false;
 void sighandler(int){fSimulationRunning = false;}
 
@@ -46,6 +54,17 @@ const Eigen::Vector3d sensor_pos_in_link = Eigen::Vector3d(0.0,0.0,0.05);
 Eigen::Vector3d sensed_force;
 Eigen::Vector3d sensed_moment;
 
+//*
+// Recording data
+//*
+// file name for recording data
+const string record_file = "data.csv";
+// helper function to combine data into vector
+void recordData(double curr_time, int dof, Eigen::Vector3d sensed_force, Eigen::Vector3d sensed_moment, Eigen::VectorXd command_torques);
+// helper function to record data to CSV file
+void recordToCSV(Eigen::VectorXd &v, const std::string &filename);
+
+
 // initialize window manager
 GLFWwindow* glfwInitialize();
 
@@ -67,6 +86,10 @@ bool fTransZp = false;
 bool fTransZn = false;
 bool fRotPanTilt = false;
 
+
+/* =======================================================================================
+   MAIN LOOP
+========================================================================================== */
 int main (int argc, char** argv) {
 	cout << "Loading URDF world model file: " << world_file << endl;
 
@@ -207,7 +230,44 @@ int main (int argc, char** argv) {
 	return 0;
 }
 
+
+/* ----------------------------------------------------------------------------------
+	Utility functions
+-------------------------------------------------------------------------------------*/
+void recordData(double curr_time, int dof, Eigen::Vector3d sensed_force, Eigen::Vector3d sensed_moment, Eigen::VectorXd command_torques)
+{
+	// 1 value for time, 3 values for forces, 3 values for moments, and dof values for command torques  
+	Eigen::VectorXd data = Eigen::VectorXd::Zero(7 + dof);
+	data(0) = curr_time;
+	
+	for (int i = 0; i < 3; i++) {
+		data(1 + i) = sensed_force(i);
+		data(4 + i) = sensed_moment(i);
+	}
+	for (int i = 0; i < dof; i++) {
+		data(7 + i) = command_torques(i);
+	}
+	recordToCSV(data, record_file);
+}
 //------------------------------------------------------------------------------
+void recordToCSV(Eigen::VectorXd &v, const std::string &filename)
+{
+    std::ofstream file(filename,  std::ofstream::out | std::ofstream::app);
+    if (file.is_open())
+    {
+        for(int i=0; i < v.rows(); ++i)
+        {
+            file << v(i);
+            if(i!=v.rows()-1) file << ", ";
+        }
+        file << "\n";
+    }
+    //    file.close();
+}
+
+/* =======================================================================================
+   CONTROL LOOP
+========================================================================================== */
 void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 	
 	robot->updateModel();
@@ -284,6 +344,14 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		// -------------------------------------------
 		// update last time
 		last_time = curr_time;
+
+		//*
+		// Recording data
+		//*
+		if (curr_time <= 8.0)
+		{
+			recordData(curr_time, dof, sensed_force, sensed_moment, command_torques);
+		}
 	}
 
 	double end_time = timer.elapsedTime();
@@ -294,7 +362,14 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 
 }
 
-//------------------------------------------------------------------------------
+/* =======================================================================================
+   SIMULATION SETUP
+   -----------------------
+   * Simulation loop
+   * Window initialization
+   * Window error
+   * Mouse click commands
+========================================================================================== */
 void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* plate, ForceSensorSim* fsensor, Simulation::Sai2Simulation* sim) {
 	fSimulationRunning = true;
 
