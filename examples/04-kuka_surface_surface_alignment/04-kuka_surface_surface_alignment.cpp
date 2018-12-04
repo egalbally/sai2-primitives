@@ -52,14 +52,15 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* plate, ForceS
 
 // control link and position in link
 const string link_name = "link6";
-const Eigen::Vector3d pos_in_link = Eigen::Vector3d(0.0,0.0,0.15);
+// const Eigen::Vector3d pos_in_link = Eigen::Vector3d(0.0,0.0,0.15);
+const Eigen::Vector3d pos_in_link = Eigen::Vector3d(0.0,0.2,0.15);
+// const Eigen::Vector3d pos_in_link = Eigen::Vector3d(0.2,0.0,0.15);
 const Eigen::Vector3d sensor_pos_in_link = Eigen::Vector3d(0.0,0.0,0.05);
 Eigen::Vector3d sensed_force;
 Eigen::Vector3d sensed_moment;
 Eigen::Vector3d pos_ball;
-Eigen::Quaterniond frame_viz_ori_Q;
-Eigen::MatrixXd frame_viz_ori_R;
-// Eigen::Affine3d frame_viz_trans;
+Eigen::Quaterniond frame_viz_ori_Q = Eigen::Quaterniond::Identity();
+Eigen::Matrix3d frame_viz_ori_R;
 double curr_time;
 
 //---*
@@ -179,8 +180,8 @@ int main (int argc, char** argv) {
     	fsensor_display->update();
 
 		// update graphics. this automatically waits for the correct amount of time
-		Eigen::Quaterniond frame_viz_ori_Q = Eigen::Quaterniond::Identity();
 		int width, height;
+		// Eigen::Quaterniond frame_viz_ori_Q = Eigen::Quaterniond::Identity();
 		glfwGetFramebufferSize(window, &width, &height);
 		graphics->updateGraphics(robot_name, robot);
 		graphics->updateGraphics(plate_name, plate);
@@ -344,8 +345,8 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 
 		// update ball visualizer position (control point located at: end_effector + pos_in_link)
 		robot->position(pos_ball, link_name, pos_in_link);
-		robot->orientation(frame_viz_ori_R, link_name);
-		// frame_viz_ori_R = Quaterniond(frame_viz_ori_R);
+		robot->rotation(frame_viz_ori_R, link_name);
+		frame_viz_ori_Q = frame_viz_ori_R;
 
 		// pos_ball<< surf_alignment_primitive->_control_frame.translation(); //not moving
 		// pos_ball << 0, 0.15*sin(2*M_PI*curr_time/3), 0.4;
