@@ -151,17 +151,19 @@
         </geometry>
       </visual>
 
-      <!-- SPIN VIZ -->
+      <!-- CAP VIZ -->
       <visual>
-        <origin xyz="0 0 0.37" rpy="0 0 0" />
+        <origin xyz="0 0 0.505" rpy="0 0 0" />
         <geometry>
             <!-- <box size="0.08 0.08 0.08" /> -->
             <!-- <cylinder radius="0.06" length="0.03"/> -->
             <mesh filename="Cap2_NoThreads.obj" scale="0.041 0.041 0.041" />
         </geometry>
       </visual>
+
+      <!-- SPIN VIZ -->
       <visual>
-            <origin xyz="0 0 0.157" rpy="0 0 0" />
+            <origin xyz="0 0 0.174" rpy="0 0 0" />
             <geometry>
                 <box size="0.15 0.02 0.005" />
                 <!-- <cylinder radius="0.08" length="0.01"/> -->
@@ -171,7 +173,7 @@
             </material>
       </visual>
       <visual>
-            <origin xyz="0 0 0.157" rpy="0 0 0" />
+            <origin xyz="0 0 0.174" rpy="0 0 0" />
             <geometry>
                 <box size="0.02 0.15 0.005" />
                 <!-- <cylinder radius="0.08" length="0.01"/> -->
@@ -181,13 +183,13 @@
             </material>
       </visual>
 
-      <!-- CAP -->
+      <!-- CAP COLLISION-->
       <collision>
       <!--  <origin xyz="0 0 0.03" rpy="0 0 0" />
             <geometry>
                 <cylinder radius="0.06" length="0.03"/>
             </geometry> -->
-            <origin xyz="0 0 0.157" rpy="0 0 0" />
+            <origin xyz="0 0 0.503" rpy="0 0 0" />
             <geometry>
                 <mesh filename="Cap2_NoThreads.obj" scale="0.041 0.041 0.041" />
             </geometry>
