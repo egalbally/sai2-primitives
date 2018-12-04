@@ -378,10 +378,13 @@ void control(Sai2Model::Sai2Model* robot1, Sai2Model::Sai2Model* robot2, Sai2Mod
 
 		/* ---------------------- Force control ---------------------- */
 		if (control_mode == CONTROL_AUGMENTED_OBJECT) {
+			
 			// - desired object position and current task error
+			// obj_des_pos << 0, 0.4,0.15*sin(2*M_PI*curr_time/3);
 			// obj_des_pos << 0, 0.15*sin(2*M_PI*curr_time/3), 0.4;
-			obj_des_pos << 0, 0, 0;
+			obj_des_pos << 0.15*cos(2*M_PI*curr_time/3), 0.15*sin(2*M_PI*curr_time/3), 0.4;
 			// obj_des_pos << 0, 0, 0;
+
 			Sai2Model::orientationError(obj_ori_error, Eigen::Matrix3d::Identity(), object_com_frame.linear());
 			obj_task_err << (object_com_frame.translation() - obj_des_pos), obj_ori_error;
 
@@ -466,7 +469,7 @@ void control(Sai2Model::Sai2Model* robot1, Sai2Model::Sai2Model* robot2, Sai2Mod
 		force_ee_act_vec << sensed_force1, sensed_force2, sensed_moment1, sensed_moment2;
 		force_obj_act_vec = G * force_ee_act_vec;
 
-		cout << force_obj_act_vec[6] << endl;
+		// cout << force_obj_act_vec[6] << endl;
 
 		// update last time
 		last_time = curr_time;
