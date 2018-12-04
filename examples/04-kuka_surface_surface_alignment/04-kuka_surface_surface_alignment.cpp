@@ -56,6 +56,8 @@ const Eigen::Vector3d pos_in_link = Eigen::Vector3d(0.0,0.0,0.40);
 const Eigen::Vector3d sensor_pos_in_link = Eigen::Vector3d(0.0,0.0,0.05);
 Eigen::Vector3d sensed_force;
 Eigen::Vector3d sensed_moment;
+Eigen::Vector3d pos_ball;
+double curr_time;
 
 //*
 // Recording data
@@ -168,7 +170,7 @@ int main (int argc, char** argv) {
 		glfwGetFramebufferSize(window, &width, &height);
 		graphics->updateGraphics(robot_name, robot);
 		graphics->updateGraphics(plate_name, plate);
-		graphics->updateObjectGraphics(frame_viz_name, pos_in_link, frame_viz_ori);
+		graphics->updateObjectGraphics(frame_viz_name, pos_ball, frame_viz_ori);
 		graphics->render(camera_name, width, height);
 		glfwSwapBuffers(window);
 		glFinish();
@@ -284,7 +286,7 @@ void recordToCSV(Eigen::VectorXd &v, const std::string &filename)
    CONTROL LOOP
 ========================================================================================== */
 void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
-	
+
 	robot->updateModel();
 	int dof = robot->dof();
 	Eigen::VectorXd command_torques = Eigen::VectorXd::Zero(dof);
@@ -314,7 +316,7 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		fTimerDidSleep = timer.waitForNextLoop();
 
 		// update time
-		double curr_time = timer.elapsedTime();
+		curr_time = timer.elapsedTime();
 		double loop_dt = curr_time - last_time;
 
 		// read joint positions, velocities, update model
@@ -326,6 +328,8 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		N_prec = Eigen::MatrixXd::Identity(dof,dof);
 		surf_alignment_primitive->updatePrimitiveModel(N_prec);
 
+		pos_ball << 0, 0.15*sin(2*M_PI*curr_time/3), 0.4;
+		cout << pos_ball << endl;
 		// -------------------------------------------
 		////////////////////////////// Compute joint torques
 		double time = controller_counter/control_freq;
