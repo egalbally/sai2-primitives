@@ -13,9 +13,12 @@
    Include Required Libraries and Files
 -----------------------------------------------------------------------------------------*/
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <thread>
 #include <math.h>
+#include <stdio.h>
+#include <time.h>
 
 #include "Sai2Model.h"
 #include "Sai2Graphics.h"
@@ -58,6 +61,28 @@ const Eigen::Vector3d pos_in_link = Eigen::Vector3d(0.0,0.0,0.20);
 const Eigen::Vector3d sensor_pos_in_link = Eigen::Vector3d(0.0,0.0,0.05);
 Eigen::Vector3d sensed_force;
 Eigen::Vector3d sensed_moment;
+
+//*
+// Recording data
+//*
+// Get current date/time, format is YYYY-MM-DD_HH-mm-ss
+const std::string currentDateTime() {
+    time_t     now = time(0);
+    struct tm  tstruct;
+    char       buf[80];
+    tstruct = *localtime(&now);
+    // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
+    // for more information about date/time format
+    strftime(buf, sizeof(buf), "%Y-%m-%d_%H-%M-%S", &tstruct);
+
+    return buf;
+}
+// file name for recording data
+const string record_file = "../../../src/dataPlotter/Data/dataPandaScrew_" + currentDateTime() + ".csv";
+// helper function to combine data into vector
+void recordData(double curr_time, int dof, Eigen::Vector3d sensed_force, Eigen::Vector3d sensed_moment, Eigen::VectorXd command_torques);
+// helper function to record data to CSV file
+void recordToCSV(Eigen::VectorXd &v, const std::string &filename);
 
 // initialize window manager
 GLFWwindow* glfwInitialize();
@@ -262,6 +287,39 @@ int main (int argc, char** argv) {
 	return 0;
 }
 
+/* ----------------------------------------------------------------------------------
+	Utility functions
+-------------------------------------------------------------------------------------*/
+void recordData(double curr_time, int dof, Eigen::Vector3d sensed_force, Eigen::Vector3d sensed_moment, Eigen::VectorXd command_torques)
+{
+	// 1 value for time, 3 values for forces, 3 values for moments, and dof values for command torques  
+	Eigen::VectorXd data = Eigen::VectorXd::Zero(7 + dof);
+	data(0) = curr_time;
+	
+	for (int i = 0; i < 3; i++) {
+		data(1 + i) = sensed_force(i);
+		data(4 + i) = sensed_moment(i);
+	}
+	for (int i = 0; i < dof; i++) {
+		data(7 + i) = command_torques(i);
+	}
+	recordToCSV(data, record_file);
+}
+//------------------------------------------------------------------------------
+void recordToCSV(Eigen::VectorXd &v, const std::string &filename)
+{
+    std::ofstream file(filename,  std::ofstream::out | std::ofstream::app);
+    if (file.is_open())
+    {
+        for(int i=0; i < v.rows(); ++i)
+        {
+            file << v(i);
+            if(i!=v.rows()-1) file << ", ";
+        }
+        file << "\n";
+    }
+    //    file.close();
+}
 
 /* =======================================================================================
    CONTROL LOOP
@@ -385,6 +443,14 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		controller_counter++;
 		curr_control_time++;
 		last_time = curr_time;
+
+		//*
+		// Recording data
+		//*
+		if (curr_time <= 8.0)
+		{
+			recordData(curr_time, dof, sensed_force, sensed_moment, command_torques);
+		}
 	}
 
 	double end_time = timer.elapsedTime();
