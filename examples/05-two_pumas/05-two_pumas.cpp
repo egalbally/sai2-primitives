@@ -2,7 +2,7 @@
  * 05-two_pumas.cpp
  *
  *
- * Elena Galbally & Adrian Piedra (based on: https://github.com/manips-sai/cs327a/blob/split_sai2/hw4_sol/p1-main-sol.cpp)
+ * Elena Galbally & Adrian Piedra (based on: https://github.com/manips-sai/cs327a)
  *
  *======================================================================================*/
 
@@ -70,7 +70,6 @@ void glfwError(int error, const char* description);
 // callback when a key is pressed
 void keySelect(GLFWwindow* window, int key, int scancode, int action, int mods);
 
-
 /* =======================================================================================
    MAIN LOOP
 ========================================================================================== */
@@ -101,6 +100,17 @@ int main (int argc, char** argv) {
     sim->setCoeffFrictionStatic(0.5);
     sim->setCoeffFrictionDynamic(0.5);
     
+	// //Display frame on held object
+	// auto vis_world_ptr = graphics->_world;
+	// chai3d::cGenericObject* object_ptr;
+	// for (uint i = 0; i < vis_world_ptr->getNumChildren(); i++) {
+	// 	auto temp_ptr = vis_world_ptr->getChild(i);
+	// 	if (strcmp(temp_ptr->m_name.c_str(), object_name.c_str()) == 0) {
+	// 		object_ptr = temp_ptr;
+	// 	}
+	// }
+	// object_ptr->setShowFrame(true, false);
+
     // set joint damping on grippers: TODO: the values needed seem to much larger than physical!
     auto base_1 = sim->_world->getBaseNode(robot1_name);
     auto gripper_1 = base_1->getJoint(gripper_joint_name);

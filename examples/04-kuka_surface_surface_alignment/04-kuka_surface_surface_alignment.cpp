@@ -339,8 +339,11 @@ void control(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim) {
 		N_prec = Eigen::MatrixXd::Identity(dof,dof);
 		surf_alignment_primitive->updatePrimitiveModel(N_prec);
 
-		pos_ball << 0, 0.15*sin(2*M_PI*curr_time/3), 0.4;
-		cout << pos_ball << endl;
+		// update ball visualizer position (control point located at: end_effector + pos_in_link)
+		robot->position(pos_ball, link_name, pos_in_link);
+		// pos_ball<< surf_alignment_primitive->_control_frame.translation(); //not moving
+		// pos_ball << 0, 0.15*sin(2*M_PI*curr_time/3), 0.4;
+		// cout << pos_ball << endl;
 		// -------------------------------------------
 		////////////////////////////// Compute joint torques
 		double time = controller_counter/control_freq;
