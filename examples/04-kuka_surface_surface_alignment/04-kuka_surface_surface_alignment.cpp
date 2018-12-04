@@ -40,6 +40,7 @@ const string robot_file = "resources/kuka_iiwa.urdf";
 const string robot_name = "Kuka-IIWA";
 const string plate_file = "resources/plate.urdf";
 const string plate_name = "Plate";
+const string frame_viz_name = "frameOrigin_viz";
 
 const string camera_name = "camera";
 
@@ -149,10 +150,12 @@ int main (int argc, char** argv) {
     	fsensor_display->update();
 
 		// update graphics. this automatically waits for the correct amount of time
+		Eigen::Quaterniond frame_viz_ori = Eigen::Quaterniond::Identity();
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
 		graphics->updateGraphics(robot_name, robot);
 		graphics->updateGraphics(plate_name, plate);
+		graphics->updateObjectGraphics(frame_viz_name, pos_in_link, frame_viz_ori);
 		graphics->render(camera_name, width, height);
 		glfwSwapBuffers(window);
 		glFinish();
