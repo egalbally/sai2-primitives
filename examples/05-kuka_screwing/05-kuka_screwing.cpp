@@ -114,7 +114,7 @@ Eigen::Matrix3d target_orientation;
 
 #define APPROACH_ANGLE 	15.0	// Angle about X with which to approach bottle
 #define FORCE_THRESH	1 		// threshold force to establish whether contact has been made with bottle
-#define MAX_ROTATION 	360 	// max rotation in degrees
+#define MAX_ROTATION 	200 	// max rotation in degrees
 // ---------------------------------------------------------------------------------------
 
 

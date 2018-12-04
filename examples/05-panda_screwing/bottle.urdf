@@ -45,7 +45,7 @@
             <origin xyz="0 0 0" rpy="0 -0 0" />
             <!-- <origin xyz="0 0 0" rpy="0 0 0" /> -->
             <geometry>
-                <cylinder radius="0.045" length="0.22"/>
+                <cylinder radius="0.055" length="0.22"/>
                 <!-- <mesh filename="Bottle_NoThreads.obj" scale="0.04 0.04 0.04" /> -->
             </geometry>
         </collision>
