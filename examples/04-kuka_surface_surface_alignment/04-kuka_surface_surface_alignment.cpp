@@ -131,13 +131,13 @@ int main (int argc, char** argv) {
 
 	// load robots
 	Eigen::Vector3d world_gravity = sim->_world->getGravity().eigen();
-	auto robot = new Sai2Model::Sai2Model(robot_file, false, world_gravity, sim->getRobotBaseTransform(robot_name));
+	auto robot = new Sai2Model::Sai2Model(robot_file, false,sim->getRobotBaseTransform(robot_name), world_gravity);
 
 	sim->getJointPositions(robot_name, robot->_q);
 	robot->updateModel();
 
 	// load plate
-	auto plate = new Sai2Model::Sai2Model(plate_file, false, world_gravity, sim->getRobotBaseTransform(plate_name));
+	auto plate = new Sai2Model::Sai2Model(plate_file, false, sim->getRobotBaseTransform(plate_name), world_gravity);
 
 	// load simulated force sensor
 	Eigen::Affine3d T_sensor = Eigen::Affine3d::Identity();

@@ -168,13 +168,13 @@ int main (int argc, char** argv) {
 
 	// load robots
 	Eigen::Vector3d world_gravity = sim->_world->getGravity().eigen();
-	auto robot = new Sai2Model::Sai2Model(robot_file, false, world_gravity, sim->getRobotBaseTransform(robot_name));
+	auto robot = new Sai2Model::Sai2Model(robot_file, false, sim->getRobotBaseTransform(robot_name), world_gravity);
 
 	sim->getJointPositions(robot_name, robot->_q);
 	robot->updateModel();
 
 	// load bottle
-	auto bottle = new Sai2Model::Sai2Model(bottle_file, false, world_gravity, sim->getRobotBaseTransform(bottle_name));
+	auto bottle = new Sai2Model::Sai2Model(bottle_file, false, sim->getRobotBaseTransform(bottle_name), world_gravity);
 
 	// load simulated force sensor
 	Eigen::Affine3d T_sensor = Eigen::Affine3d::Identity();
@@ -610,7 +610,8 @@ ControllerStatus done(Sai2Primitives::RedundantArmMotion* motion_primitive, Eige
 	sim->setJointTorques(robot_name, command_torques);
 	cout << endl;
 	cout << "------- DONE -------" << endl;
-	sleep(1);
+	// sleep(1);
+	std::this_thread::sleep_for(std::chrono::seconds(1));
 	// exit(EXIT_FAILURE);
 	fSimulationRunning = false;
 	return FINISHED;

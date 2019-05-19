@@ -5,7 +5,9 @@
 *.slo
 *.lo
 *.o
-#*.obj
+*.dae
+*.obj
+*.mtl
 
 # Precompiled Headers
 *.gch
@@ -33,3 +35,7 @@
 
 # filders
 build/
+
+# Editor files
+.vscode*
+.idea*
