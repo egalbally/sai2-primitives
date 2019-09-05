@@ -7,6 +7,7 @@
 *.o
 *.dae
 *.obj
+*.mtl
 
 # Precompiled Headers
 *.gch
@@ -34,3 +35,7 @@
 
 # filders
 build/
+
+# Editor files
+.vscode*
+.idea*
